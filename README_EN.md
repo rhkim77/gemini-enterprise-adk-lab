@@ -1,4 +1,4 @@
-# GSP-ADK-GE-2026: Building & Registering an Enterprise ADK 2.0 Agent in Gemini Enterprise (English Version)
+# Cymbal Enterprise AI Hub: Building & Registering an Enterprise ADK 2.0 Agent in Gemini Enterprise (English Version)
 
 > 🇰🇷 **[한국어 기본 문서 보기 (README.md)](README.md)** | 🇺🇸 **English Version (Current)**
 
@@ -8,7 +8,7 @@
 
 * **Duration**: 2 Hours (120 Minutes)
 * **Level**: Intermediate / Advanced
-* **Lab Format**: Hands-on Cloud Skills Lab (Qwiklabs Standard)
+* **Lab Format**: Hands-on Cloud Skills Lab (Enterprise Production Architecture)
 * **Structural Reference**: Modeled after [hajekim/build-with-gemini-day1-agent](https://github.com/hajekim/build-with-gemini-day1-agent)
 
 ---

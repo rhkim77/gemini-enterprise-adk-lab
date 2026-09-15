@@ -1,6 +1,6 @@
 # Lab 04 (Task 5): Gemini Enterprise 연동, OAuth 2.0 권한 위임 및 E2E 검증
 
-* **실습 ID**: `GSP-ADK-GE-2026` — Task 5 / 5 (Capstone Task)
+* **실습 ID**: `Cymbal Enterprise AI Hub` — Task 5 / 5 (Capstone Task)
 * **소요 시간**: 약 30분
 * **난이도**: 고급 (Advanced)
 

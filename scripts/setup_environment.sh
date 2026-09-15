@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================================
-# GSP-ADK-GE-2026: One-Click Environment & BigQuery Bootstrap Script
+# Cymbal Enterprise AI Hub: One-Click Environment & BigQuery Bootstrap Script
 # Seeds 100 Enterprise Records across 3 Gateways (32 FinOps + 36 Policy + 32 ITSM)
 # ============================================================================
 set -e

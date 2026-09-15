@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # ============================================================================
-# GSP-ADK-GE-2026: Automated Lab Activity Verification Suite (Check my progress)
+# Cymbal Enterprise AI Hub: Automated Verification Suite
 # Verifies 100-Record Datasets (32 FinOps + 36 Policy Chunks + 32 ITSM Incidents),
 # all 3 Decoupled Tool Gateways, Refusal Guardrail, Cache Invalidation & A2A Card
 # ============================================================================
@@ -23,7 +23,7 @@ def run_validation_suite():
     itsm_mode = os.getenv("ITSM_MODE", "MOCK")
 
     print("=" * 84)
-    print("🧪 GEMINI ENTERPRISE ADK LAB - AUTOMATED VALIDATION SUITE (100-RECORD DATASET)")
+    print("🧪 CYMBAL ENTERPRISE AI HUB - AUTOMATED VALIDATION SUITE (100-RECORD DATASET)")
     print(f"Project ID: {project_id} | ITSM Mode: {itsm_mode}")
     print("=" * 84)
 

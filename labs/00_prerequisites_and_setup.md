@@ -1,6 +1,6 @@
 # Lab 00 (Task 1): 환경 설정 및 원클릭 데이터 부트스트랩
 
-* **실습 ID**: `GSP-ADK-GE-2026` — Task 1 / 5
+* **실습 ID**: `Cymbal Enterprise AI Hub` — Task 1 / 5
 * **소요 시간**: 약 15분
 * **난이도**: 중급 / 고급
 

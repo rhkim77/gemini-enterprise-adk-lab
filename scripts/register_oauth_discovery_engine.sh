@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================================
-# GSP-ADK-GE-2026: Register OAuth 2.0 serverSideOauth2 Resource in Discovery Engine
+# Cymbal Enterprise AI Hub: Register OAuth 2.0 serverSideOauth2 Resource in Discovery Engine
 # Enables End-User Identity Delegation from Gemini Enterprise to ADK Agent
 # ============================================================================
 set -e

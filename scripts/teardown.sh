@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================================
-# GSP-ADK-GE-2026: Lab Resource Teardown Script
+# Cymbal Enterprise AI Hub: Resource Teardown Script
 # ============================================================================
 set -e
 

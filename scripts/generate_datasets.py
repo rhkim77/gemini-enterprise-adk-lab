@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # ============================================================================
-# GSP-ADK-GE-2026: Enterprise Raw Dataset Generator (30+ Records per Gateway)
+# Cymbal Enterprise AI Hub: Enterprise Raw Dataset Generator (30+ Records per Gateway)
 # Generates:
 #   - data/finops_billing_ledger.json       (32 Enterprise Cloud Projects)
 #   - data/it_security_policy_chunks.json   (36 Chunks across 12 Policies for N-1~N+1 Stitching)

@@ -1,6 +1,6 @@
 # Lab 03 (Task 4): 클라우드 배포 (Cloud Run 컨테이너 & Vertex AI Agent Engine)
 
-* **실습 ID**: `GSP-ADK-GE-2026` — Task 4 / 5
+* **실습 ID**: `Cymbal Enterprise AI Hub` — Task 4 / 5
 * **소요 시간**: 약 20분
 * **난이도**: 중급 / 고급
 

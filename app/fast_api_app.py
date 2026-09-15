@@ -33,9 +33,9 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 app = FastAPI(
-    title="GSP-ADK-GE-2026: Enterprise FinOps & IT Hub Agent",
+    title="Cymbal Enterprise AI Hub — FinOps & IT Coordinator Agent",
     description="Dual-Contract (A2A + Reasoning Engine) ADK 2.0 Agent for Gemini Enterprise Integration",
-    version="1.0.0",
+    version="2.0.0",
 )
 
 # Mount Dual-Contract Endpoints

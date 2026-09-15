@@ -1,15 +1,15 @@
-# GSP-ADK-GE-2026: Gemini Enterprise 기반 Google ADK 2.0 엔터프라이즈 에이전트 구축 및 연동 핸즈온 워크샵
+# Cymbal Enterprise AI Hub: Gemini Enterprise 기반 Google ADK 2.0 엔터프라이즈 에이전트 구축 및 연동 가이드
 
 > 🇰🇷 **한국어 기본 문서 (Current)** | 🇺🇸 **[English Version (README_EN.md)](README_EN.md)**
 
-![Lab Banner](https://img.shields.io/badge/Google_Cloud-Skills_Boost_Lab-4285F4?style=for-the-badge&logo=google-cloud)
+![Lab Banner](https://img.shields.io/badge/Google_Cloud-Enterprise_AI_Hub-4285F4?style=for-the-badge&logo=google-cloud)
 ![ADK Version](https://img.shields.io/badge/Google_ADK-2.8.0-34A853?style=for-the-badge)
 ![Gemini Enterprise](https://img.shields.io/badge/Gemini_Enterprise-A2A_%26_Agent_Engine-FBBC04?style=for-the-badge)
 
-* **실습 코드**: `GSP-ADK-GE-2026` (Qwiklabs / Cloud Skills Boost 표준 핸즈온 랩)
-* **소요 시간**: 약 2시간 (총 5개 Task 구성)
+* **프로젝트 명칭**: `Cymbal Enterprise AI Hub` (엔터프라이즈 FinOps 및 IT 통합 코디네이터 에이전트)
+* **소요 시간**: 약 2시간 (총 5개 모듈 구성)
 * **난이도**: 중급 / 고급 (Intermediate / Advanced)
-* **아키텍처 레퍼런스**: [hajekim/build-with-gemini-day1-agent](https://github.com/hajekim/build-with-gemini-day1-agent)의 모듈형 실습 구조 및 Dual-Contract 서빙 패턴 계승 (`[확인됨 / Verified]`)
+* **아키텍처 레퍼런스**: [hajekim/build-with-gemini-day1-agent](https://github.com/hajekim/build-with-gemini-day1-agent)의 모듈형 아키텍처 및 Dual-Contract 서빙 패턴 계승 (`[확인됨 / Verified]`)
 
 ---
 
@@ -102,11 +102,11 @@ flowchart TB
 
 ---
 
-## 📚 3. Qwiklabs 단계별 실습 커리큘럼 (총 5개 Task)
+## 📚 3. Cymbal Enterprise AI Hub 단계별 구축 가이드 (총 5개 모듈)
 
-각 Task 문서에는 단계별 명령어와 함께 실습 완료 여부를 즉시 검증할 수 있는 **"Check my progress (진행 상황 확인)"** 스크립트가 포함되어 있습니다.
+각 가이드 문서에는 단계별 명령어와 함께 구축 완료 여부를 즉시 검증할 수 있는 **자동 검증 스위트(`validate_agent.py`)** 스크립트가 포함되어 있습니다.
 
-| 단계 (Task) | 실습 가이드 링크 | 핵심 구현 목표 및 검증 항목 | 소요 시간 |
+| 단계 (Module) | 가이드 문서 링크 | 핵심 구현 목표 및 검증 항목 | 소요 시간 |
 | :--- | :--- | :--- | :--- |
 | **Task 1 (Lab 00)** | [**Lab 00: 환경 설정 및 원클릭 부트스트랩**](labs/00_prerequisites_and_setup.md) | • `.env` 환경변수 설정 및 GCP 필수 API 5종 활성화<br/>• `setup_environment.sh` 실행 (`scripts/seed_bigquery.py`를 통해 **총 100건의 엔터프라이즈 실전 데이터셋** BigQuery/로컬 자동 시딩)<br/>• Corp Airlock(`gpkg setup` + `uv`) 기반 `google-adk==2.8.0`, `mcp==1.30.0` 의존성 고정 (`[확인됨 / Verified]`) | **15분** |
 | **Task 2 (Lab 01)** | [**Lab 01: ADK 2.0 에이전트 및 3대 도구 구현**](labs/01_adk_agent_and_tools.md) | • `app/agent.py` 코디네이터 에이전트(단일/병렬 디스패치 프롬프트) 및 자정 기준 캐시 무효화 콜백 구현<br/>• 3대 도구(`finops_bq_tool`, `it_policy_rag_tool`, `it_servicedesk_tool`) 코드 및 100건 데이터셋 연동 검증<br/>• `scripts/validate_agent.py` 자동 검증 테스트 스위트 **8/8 PASS (100 Records Verified)** 달성 | **30분** |
@@ -146,7 +146,7 @@ sed -i "s/<YOUR_PROJECT_ID>/${PROJECT_ID}/g" .env
 chmod +x scripts/setup_environment.sh
 ./scripts/setup_environment.sh
 
-# 4. Qwiklabs 자동 검증 테스트 스위트 실행 (8개 항목 / 100건 데이터셋 전체 PASS 확인)
+# 4. Cymbal Enterprise AI Hub 자동 검증 테스트 스위트 실행 (8개 항목 / 100건 데이터셋 전체 PASS 확인)
 .venv/bin/python3 scripts/validate_agent.py
 
 # 5. Dual-Contract FastAPI 서버 및 대화형 웹 스튜디오 구동 (포트 8000)

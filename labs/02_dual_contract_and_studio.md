@@ -1,6 +1,6 @@
 # Lab 02 (Task 3): Dual-Contract 서빙 레이어 & 대화형 웹 스튜디오 테스트
 
-* **실습 ID**: `GSP-ADK-GE-2026` — Task 3 / 5
+* **실습 ID**: `Cymbal Enterprise AI Hub` — Task 3 / 5
 * **소요 시간**: 약 25분
 * **난이도**: 중급 / 고급
 
@@ -91,7 +91,7 @@ curl -s -X POST http://localhost:8000/api/reasoning_engine \
 * **로컬 / Cloud Shell 웹 미리보기**: `http://localhost:8000/studio`
 * **Cloudtop 프록시 접속 URL**: `http://<YOUR_HOSTNAME>.c.googlers.com:8000/studio`
 
-화면 상단의 **4가지 Qwiklabs 검증 시나리오 버튼**을 차례대로 클릭하여 결과를 확인합니다:
+화면 상단의 **4가지 Cymbal Enterprise AI Hub 검증 시나리오 버튼**을 차례대로 클릭하여 결과를 확인합니다:
 1. **📊 1. FinOps Burn Rate (Gateway 1)**: `PROJ-AI-PROD-01`의 예산 초과(`132.37%`) Plotly 막대그래프 및 실행된 GoogleSQL 쿼리를 확인합니다.
 2. **📜 2. Security Policy RAG + Stitching (Gateway 2)**: `N-1 ~ N+1` 인접 청크가 결합된 방화벽 SOP 전문과 클릭 가능한 HTTPS GCS PDF 링크를 확인합니다.
 3. **⚡ 3. Parallel Dispatch Audit (GW1 + GW3)**: 단일 턴에서 BigQuery FinOps와 ITSM 티켓 현황을 동시 조회(`PARALLEL_DISPATCH`)하는 것을 확인합니다.

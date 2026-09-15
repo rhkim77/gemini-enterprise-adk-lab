@@ -1,6 +1,6 @@
 # Lab 01 (Task 2): ADK 2.0 에이전트 및 3대 분리형 도구 게이트웨이 구현
 
-* **실습 ID**: `GSP-ADK-GE-2026` — Task 2 / 5
+* **실습 ID**: `Cymbal Enterprise AI Hub` — Task 2 / 5
 * **소요 시간**: 약 30분
 * **난이도**: 중급 / 고급
 
@@ -13,7 +13,7 @@
 2. **Gateway 1 (`finops_bq_tool`)**: Knowledge Catalog 표준 수식을 강제하여 NL2SQL 환각을 차단하는 구조를 점검합니다.
 3. **Gateway 2 (`it_policy_rag_tool`)**: **코사인 유사도 `>= 0.70` 품질 게이트**, **인접 청크 윈도우 스티칭(`N-1 ~ N+1`)**, **도메인 외 질의 인증 거절 가드레일(Certified Refusal)** 구현을 확인합니다.
 4. **Gateway 3 (`it_servicedesk_tool`)**: `MOCK`/`LIVE` 이중 모드 및 **Two-Phase Commit (2PC) HITL 승인 락(`lock:user:{id}:mutation`)** 동작을 확인합니다.
-5. Qwiklabs 자동 검증 스크립트(`scripts/validate_agent.py`)를 실행하여 **5개 항목 전원 PASS (5/5)**를 달성합니다.
+5. Cymbal Enterprise AI Hub 자동 검증 스크립트(`scripts/validate_agent.py`)를 실행하여 **5개 항목 전원 PASS (5/5)**를 달성합니다.
 
 ---
 
@@ -47,7 +47,7 @@ cat app/agent.py
 
 ---
 
-## 🧪 Step 2: Qwiklabs 자동 검증 테스트 스위트 실행
+## 🧪 Step 2: Cymbal Enterprise AI Hub 자동 검증 테스트 스위트 실행
 
 `scripts/validate_agent.py`를 실행하여 3대 게이트웨이, 윈도우 스티칭, 거절 가드레일, 캐시 무효화가 모두 정상 작동하는지 검증합니다:
 
