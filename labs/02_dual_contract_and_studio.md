@@ -1,35 +1,35 @@
-# Lab 02 (Task 3): Dual-Contract Serving & Interactive Web Studio
+# Lab 02 (Task 3): Dual-Contract 서빙 레이어 & 대화형 웹 스튜디오 테스트
 
-* **Lab ID**: `GSP-ADK-GE-2026` — Task 3 of 5
-* **Estimated Time**: 25 Minutes
-* **Level**: Intermediate / Advanced
-
----
-
-## 🎯 Objectives
-
-In this task, you will:
-1. Understand the **Dual-Contract Serving Architecture** implemented in `app/fast_api_app.py`.
-2. Verify that a single FastAPI container simultaneously serves:
-   - **Open-Standard A2A Protocol Endpoints** (`GET /.well-known/agent-card.json` & `POST /a2a/enterprise_hub_agent`)
-   - **Vertex AI Reasoning Engine Contract** (`POST /api/reasoning_engine` & `POST /api/stream_reasoning_engine`)
-   - **Interactive Operations Web Studio UI** (`GET /studio` & `POST /api/chat`)
-3. Launch the local server and test 4 operational scenarios visually using Plotly charts and SQL/Citation inspectors.
+* **실습 ID**: `GSP-ADK-GE-2026` — Task 3 / 5
+* **소요 시간**: 약 25분
+* **난이도**: 중급 / 고급
 
 ---
 
-## 🔍 Step 1: Review the Dual-Contract Adapter Code
+## 🎯 실습 목표 (Objectives)
 
-Inspect `app/app_utils/a2a.py` to see how the Agent Card is dynamically constructed:
+이번 Task에서는 다음 작업을 수행합니다:
+1. `app/fast_api_app.py`에 구현된 **Dual-Contract 서빙 아키텍처**의 동작 원리를 이해합니다.
+2. 단일 FastAPI 컨테이너가 다음 3가지 인터페이스를 동시에 제공하는 것을 확인합니다:
+   - **오픈 표준 A2A 프로토콜 엔드포인트** (`GET /.well-known/agent-card.json` & `POST /a2a/enterprise_hub_agent`)
+   - **Vertex AI Reasoning Engine 계약 엔드포인트** (`POST /api/reasoning_engine` & `POST /api/stream_reasoning_engine`)
+   - **대화형 운영 웹 스튜디오 UI** (`GET /studio` & `POST /api/chat`)
+3. 로컬 서버를 구동하고 웹 스튜디오 UI에서 Plotly 시각화와 윈도우 스티칭 근거 링크를 확인합니다.
+
+---
+
+## 🔍 Step 1: Dual-Contract 어댑터 및 A2A 스키마 보정 확인 (`app/app_utils/a2a.py`)
+
+`app/app_utils/a2a.py` 파일을 확인합니다:
 
 ```bash
 cat app/app_utils/a2a.py
 ```
 
-### ⚠️ Crucial Gemini Enterprise Gotcha Fixed Automatically
-When registering an A2A agent in **Gemini Enterprise Console**, if `defaultInputModes` or `defaultOutputModes` contains `"text"` instead of a valid MIME type, the console rejects the Agent Card during schema validation (`[확인됨 / Verified: GE Custom Agents Integration Guide]`).
+### ⚠️ Gemini Enterprise A2A 등록 시 핵심 주의사항(Gotcha) 자동 해결
+Gemini Enterprise 콘솔에서 **"Custom agent via A2A"**로 에이전트를 등록할 때, `agent-card.json` 내 `defaultInputModes`나 `defaultOutputModes` 값이 `"text"`로 되어 있으면 스키마 검증 에러가 발생하며 등록이 거부됩니다 (`[확인됨 / Verified: GE Custom Agents Integration Guide]`).
 
-Our implementation in `app/app_utils/a2a.py` explicitly hardens this field:
+본 프로젝트의 `app/app_utils/a2a.py`는 이를 표준 MIME 타입인 **`"text/plain"`**으로 사전 고정하여 별도 수동 편집 없이 즉시 Gemini Enterprise 검증을 통과하도록 설계되어 있습니다:
 ```json
 "defaultInputModes": ["text/plain"],
 "defaultOutputModes": ["text/plain"]
@@ -37,27 +37,26 @@ Our implementation in `app/app_utils/a2a.py` explicitly hardens this field:
 
 ---
 
-## 🚀 Step 2: Start the Dual-Contract FastAPI Server
+## 🚀 Step 2: Dual-Contract FastAPI 서버 구동
 
-Activate your virtual environment (if created via `setup_environment.sh`) or run `uvicorn` directly:
+`.venv` 가상환경의 `uvicorn`을 사용하여 포트 `8000`번으로 서버를 실행합니다:
 
 ```bash
-source .venv/bin/activate 2>/dev/null || true
-uvicorn app.fast_api_app:app --host 0.0.0.0 --port 8000 &
+.venv/bin/uvicorn app.fast_api_app:app --host 0.0.0.0 --port 8000 &
 sleep 2
 ```
 
 ---
 
-## 🧪 Step 3: Test Both Enterprise Contracts via `curl`
+## 🧪 Step 3: `curl`을 통한 두 가지 엔터프라이즈 계약 검증
 
-### 3.1 Verify the A2A Agent Card (`GET /.well-known/agent-card.json`)
+### 3.1 A2A 에이전트 카드 조회 (`GET /.well-known/agent-card.json`)
 ```bash
 curl -s http://localhost:8000/.well-known/agent-card.json | jq .
 ```
-Confirm that `"defaultInputModes": ["text/plain"]` and the 3 skills (`finops_burn_rate_audit`, `it_security_policy_rag`, `it_servicedesk_action`) appear in the JSON output.
+출력된 JSON 내에 `"defaultInputModes": ["text/plain"]`과 3가지 스킬 명세가 포함되어 있는지 확인합니다.
 
-### 3.2 Verify A2A JSON-RPC Invocation (`POST /a2a/enterprise_hub_agent`)
+### 3.2 A2A JSON-RPC 원격 호출 검증 (`POST /a2a/enterprise_hub_agent`)
 ```bash
 curl -s -X POST http://localhost:8000/a2a/enterprise_hub_agent \
   -H "Content-Type: application/json" \
@@ -72,7 +71,7 @@ curl -s -X POST http://localhost:8000/a2a/enterprise_hub_agent \
   }' | jq .
 ```
 
-### 3.3 Verify Vertex AI Reasoning Engine Contract (`POST /api/reasoning_engine`)
+### 3.3 Vertex AI Reasoning Engine 동기 호출 계약 검증 (`POST /api/reasoning_engine`)
 ```bash
 curl -s -X POST http://localhost:8000/api/reasoning_engine \
   -H "Content-Type: application/json" \
@@ -86,31 +85,36 @@ curl -s -X POST http://localhost:8000/api/reasoning_engine \
 
 ---
 
-## 🖥️ Step 4: Explore the Interactive Operations Web Studio UI
+## 🖥️ Step 4: 대화형 운영 웹 스튜디오 UI(`/studio`) 테스트
 
-Open your browser to:
-* **Local / Cloud Shell Web Preview**: `http://localhost:8000/studio`
-* **Cloudtop Proxy URL**: `http://ryansbox.c.googlers.com:8000/studio`
+웹 브라우저에서 아래 주소로 접속합니다:
+* **로컬 / Cloud Shell 웹 미리보기**: `http://localhost:8000/studio`
+* **Cloudtop 프록시 접속 URL**: `http://<YOUR_HOSTNAME>.c.googlers.com:8000/studio`
 
-Click each of the **4 Qwiklabs Verification Scenario Buttons** at the top of the studio:
-1. **📊 1. FinOps Burn Rate (Gateway 1)**: Renders the Plotly bar chart showing `PROJ-AI-PROD-01` at `132.37%` overrun alongside executed GoogleSQL.
-2. **📜 2. Security Policy RAG + Stitching (Gateway 2)**: Displays stitched chunks `N-1 ~ N+1` and the clickable HTTPS GCS link.
-3. **⚡ 3. Parallel Dispatch Audit (GW1 + GW3)**: Demonstrates concurrent execution (`PARALLEL_DISPATCH`) across BigQuery FinOps and Service Desk telemetry.
-4. **🛡️ 4. Out-of-Domain Refusal Gate**: Verifies that non-enterprise queries are strictly blocked.
+화면 상단의 **4가지 Qwiklabs 검증 시나리오 버튼**을 차례대로 클릭하여 결과를 확인합니다:
+1. **📊 1. FinOps Burn Rate (Gateway 1)**: `PROJ-AI-PROD-01`의 예산 초과(`132.37%`) Plotly 막대그래프 및 실행된 GoogleSQL 쿼리를 확인합니다.
+2. **📜 2. Security Policy RAG + Stitching (Gateway 2)**: `N-1 ~ N+1` 인접 청크가 결합된 방화벽 SOP 전문과 클릭 가능한 HTTPS GCS PDF 링크를 확인합니다.
+3. **⚡ 3. Parallel Dispatch Audit (GW1 + GW3)**: 단일 턴에서 BigQuery FinOps와 ITSM 티켓 현황을 동시 조회(`PARALLEL_DISPATCH`)하는 것을 확인합니다.
+4. **🛡️ 4. Out-of-Domain Refusal Gate**: 사내 규정 외 질문이 완벽히 차단되는지 확인합니다.
 
 ---
 
-## ✅ Check my progress: Verify Task 3
+## ✅ Check my progress: Task 3 완료 검증
 
-Run the health check endpoint to confirm both contracts are active:
+Health Check 엔드포인트를 호출하여 두 계약(`A2A`, `ReasoningEngine`)이 모두 활성 상태인지 확인합니다:
 
 ```bash
 curl -s http://localhost:8000/healthz
 ```
 
-**Expected Output:**
+**정상 출력 예시:**
 ```json
 {"status":"healthy","agent":"enterprise_hub_agent","contracts":["A2A","ReasoningEngine"]}
 ```
 
-> **🎉 Task 3 Complete!** Proceed to [Lab 03: Cloud Deployment (Cloud Run & Agent Engine)](03_cloud_deployment.md).
+확인 후 다음 단계 배포를 위해 로컬 백그라운드 서버를 종료합니다:
+```bash
+pkill -f "uvicorn app.fast_api_app:app" || true
+```
+
+> **🎉 Task 3 완료!** 이제 [Lab 03: 클라우드 배포 (Cloud Run & Agent Engine)](03_cloud_deployment.md)으로 이동하세요.
