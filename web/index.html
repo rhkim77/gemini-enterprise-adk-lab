@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GSP-ADK-GE-2026: Enterprise FinOps & IT Hub Studio</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col">
+  <!-- Header -->
+  <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur px-6 py-4 flex items-center justify-between">
+    <div class="flex items-center space-x-3">
+      <span class="px-2.5 py-1 text-xs font-semibold bg-blue-600 text-white rounded-full">Google ADK 2.0</span>
+      <h1 class="text-lg font-bold tracking-tight">Enterprise FinOps & IT Hub Coordinator Studio</h1>
+    </div>
+    <div class="flex items-center space-x-4 text-xs text-slate-400">
+      <a href="/.well-known/agent-card.json" target="_blank" class="hover:text-blue-400 underline">View A2A Agent Card JSON</a>
+      <span class="px-2 py-1 bg-emerald-950 text-emerald-400 border border-emerald-800 rounded">Dual-Contract Active</span>
+    </div>
+  </header>
+
+  <!-- Main Workspace -->
+  <main class="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 p-6 max-w-7xl w-full mx-auto">
+    <!-- Left Column: Chat & Quick Scenarios (7 cols) -->
+    <section class="lg:col-span-7 flex flex-col bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-lg">
+      <div class="p-4 border-b border-slate-800 bg-slate-900/50">
+        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Qwiklabs Verification Scenarios (Click to Test)</p>
+        <div class="flex flex-wrap gap-2">
+          <button onclick="runPrompt('Analyze FinOps budget burn rate and idle GPU waste for PROJ-AI-PROD-01')" class="text-xs bg-slate-800 hover:bg-blue-900/60 border border-slate-700 px-3 py-1.5 rounded-lg transition">
+            📊 1. FinOps Burn Rate (Gateway 1)
+          </button>
+          <button onclick="runPrompt('What is the firewall port open procedure under policy SEC-POL-2026-FW?')" class="text-xs bg-slate-800 hover:bg-blue-900/60 border border-slate-700 px-3 py-1.5 rounded-lg transition">
+            📜 2. Security Policy RAG + Stitching (Gateway 2)
+          </button>
+          <button onclick="runPrompt('Audit live ITSM incidents and compare against FinOps burn rate for PROJ-AI-PROD-01')" class="text-xs bg-slate-800 hover:bg-blue-900/60 border border-slate-700 px-3 py-1.5 rounded-lg transition">
+            ⚡ 3. Parallel Dispatch Audit (GW1 + GW3)
+          </button>
+          <button onclick="runPrompt('How do I descale the office espresso coffee machine?')" class="text-xs bg-rose-950/60 hover:bg-rose-900/80 border border-rose-800 text-rose-200 px-3 py-1.5 rounded-lg transition">
+            🛡️ 4. Out-of-Domain Refusal Gate
+          </button>
+        </div>
+      </div>
+
+      <!-- Messages Container -->
+      <div id="chatBox" class="flex-1 p-5 space-y-4 overflow-y-auto max-h-[460px]">
+        <div class="bg-slate-800/70 border border-slate-700/70 rounded-lg p-4 text-sm text-slate-300">
+          👋 Welcome to the <strong>Enterprise Hub Coordinator Studio</strong>. Select any verification scenario above or type a custom query below to inspect ADK tool dispatching, SQL generation, Window-Stitched citations, and Gemini Enterprise A2A responses.
+        </div>
+      </div>
+
+      <!-- Input Form -->
+      <form onsubmit="handleFormSubmit(event)" class="p-4 border-t border-slate-800 bg-slate-900 flex gap-3">
+        <input id="userInput" type="text" placeholder="Ask about FinOps burn rate, SEC-POL-2026-FW firewall SOP, or open a 2PC ticket..." class="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500" />
+        <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm px-5 py-2.5 rounded-lg transition">Send</button>
+      </form>
+    </section>
+
+    <!-- Right Column: Telemetry Inspector, SQL & Plotly Chart (5 cols) -->
+    <section class="lg:col-span-5 flex flex-col space-y-6">
+      <!-- Dispatch & Telemetry Card -->
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg">
+        <h2 class="text-sm font-bold uppercase tracking-wider text-slate-400 mb-3">🔍 ADK Trajectory & Telemetry Inspector</h2>
+        <div class="space-y-2 text-xs">
+          <div class="flex justify-between py-1.5 border-b border-slate-800">
+            <span class="text-slate-400">Dispatch Mode:</span>
+            <span id="dispatchBadge" class="font-mono font-semibold text-emerald-400">IDLE</span>
+          </div>
+          <div class="flex justify-between py-1.5 border-b border-slate-800">
+            <span class="text-slate-400">Execution Latency:</span>
+            <span id="latencyBadge" class="font-mono text-slate-200">- ms</span>
+          </div>
+          <div class="py-1.5">
+            <span class="text-slate-400 block mb-1">Executed GoogleSQL / Citation:</span>
+            <pre id="sqlBox" class="bg-slate-950 border border-slate-800 rounded p-2.5 text-[11px] font-mono text-amber-300 overflow-x-auto whitespace-pre-wrap">No SQL executed yet.</pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- Plotly Chart Container -->
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg flex-1 flex flex-col">
+        <h2 class="text-sm font-bold uppercase tracking-wider text-slate-400 mb-3">📈 FinOps Governance Visual Analytics</h2>
+        <div id="chartContainer" class="flex-1 min-h-[240px] flex items-center justify-center text-xs text-slate-500">
+          Run a FinOps or Parallel Audit query to render real-time Plotly analytics.
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    async function runPrompt(text) {
+      document.getElementById('userInput').value = text;
+      await sendQuery(text);
+    }
+
+    async function handleFormSubmit(e) {
+      e.preventDefault();
+      const input = document.getElementById('userInput');
+      const text = input.value.trim();
+      if (!text) return;
+      input.value = '';
+      await sendQuery(text);
+    }
+
+    async function sendQuery(message) {
+      const chatBox = document.getElementById('chatBox');
+      chatBox.innerHTML += `
+        <div class="flex justify-end">
+          <div class="bg-blue-600 text-white rounded-lg px-4 py-2.5 text-sm max-w-md">${message}</div>
+        </div>
+      `;
+      chatBox.scrollTop = chatBox.scrollHeight;
+
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message })
+      });
+      const data = await res.json();
+
+      // Render Agent Reply
+      const formattedReply = data.final_text.replace(/\n/g, '<br/>');
+      chatBox.innerHTML += `
+        <div class="flex justify-start">
+          <div class="bg-slate-800 border border-slate-700 text-slate-100 rounded-lg p-4 text-sm max-w-xl leading-relaxed">${formattedReply}</div>
+        </div>
+      `;
+      chatBox.scrollTop = chatBox.scrollHeight;
+
+      // Update Inspector
+      document.getElementById('dispatchBadge').textContent = data.dispatch_mode;
+      document.getElementById('latencyBadge').textContent = `${data.latency_ms} ms`;
+      document.getElementById('sqlBox').textContent = data.generated_sql || (data.gcs_links.length ? data.gcs_links.join('\n') : 'No SQL generated (Policy/Refusal path)');
+
+      // Render Plotly if present
+      if (data.plotly_spec) {
+        const chartDiv = document.getElementById('chartContainer');
+        chartDiv.innerHTML = '';
+        Plotly.newPlot(chartDiv, data.plotly_spec.data, {
+          ...data.plotly_spec.layout,
+          paper_bgcolor: 'rgba(0,0,0,0)',
+          plot_bgcolor: 'rgba(0,0,0,0)',
+          font: { color: '#cbd5e1', size: 11 }
+        }, { responsive: true, displayModeBar: false });
+      }
+    }
+  </script>
+</body>
+</html>
