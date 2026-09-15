@@ -108,11 +108,23 @@ flowchart TB
 
 | 단계 (Task) | 실습 가이드 링크 | 핵심 구현 목표 및 검증 항목 | 소요 시간 |
 | :--- | :--- | :--- | :--- |
-| **Task 1 (Lab 00)** | [**Lab 00: 환경 설정 및 원클릭 부트스트랩**](labs/00_prerequisites_and_setup.md) | • `.env` 환경변수 설정 및 GCP 필수 API 5종 활성화<br/>• `setup_environment.sh` 실행 (BigQuery FinOps 청구 테이블 및 IT 보안 매뉴얼 임베딩 테이블 자동 시딩)<br/>• Corp Airlock(`gpkg setup` + `uv`) 기반 `google-adk==2.8.0`, `mcp==1.29.1` 의존성 고정 (`[확인됨 / Verified]`) | **15분** |
-| **Task 2 (Lab 01)** | [**Lab 01: ADK 2.0 에이전트 및 3대 도구 구현**](labs/01_adk_agent_and_tools.md) | • `app/agent.py` 코디네이터 에이전트(단일/병렬 디스패치 프롬프트) 및 자정 기준 캐시 무효화 콜백 구현<br/>• 3대 도구(`finops_bq_tool`, `it_policy_rag_tool`, `it_servicedesk_tool`) 코드 검증<br/>• `scripts/validate_agent.py` 자동 검증 테스트 스위트 **5/5 PASS** 달성 | **30분** |
+| **Task 1 (Lab 00)** | [**Lab 00: 환경 설정 및 원클릭 부트스트랩**](labs/00_prerequisites_and_setup.md) | • `.env` 환경변수 설정 및 GCP 필수 API 5종 활성화<br/>• `setup_environment.sh` 실행 (`scripts/seed_bigquery.py`를 통해 **총 100건의 엔터프라이즈 실전 데이터셋** BigQuery/로컬 자동 시딩)<br/>• Corp Airlock(`gpkg setup` + `uv`) 기반 `google-adk==2.8.0`, `mcp==1.30.0` 의존성 고정 (`[확인됨 / Verified]`) | **15분** |
+| **Task 2 (Lab 01)** | [**Lab 01: ADK 2.0 에이전트 및 3대 도구 구현**](labs/01_adk_agent_and_tools.md) | • `app/agent.py` 코디네이터 에이전트(단일/병렬 디스패치 프롬프트) 및 자정 기준 캐시 무효화 콜백 구현<br/>• 3대 도구(`finops_bq_tool`, `it_policy_rag_tool`, `it_servicedesk_tool`) 코드 및 100건 데이터셋 연동 검증<br/>• `scripts/validate_agent.py` 자동 검증 테스트 스위트 **8/8 PASS (100 Records Verified)** 달성 | **30분** |
 | **Task 3 (Lab 02)** | [**Lab 02: Dual-Contract 서빙 & 웹 스튜디오 테스트**](labs/02_dual_contract_and_studio.md) | • `app/fast_api_app.py`를 통해 **A2A(`/.well-known/agent-card.json`)**와 **Reasoning Engine(`/api/reasoning_engine`)** 동시 마운트<br/>• 로컬 웹 스튜디오(`/studio`, 포트 8000)에서 4대 검증 시나리오(Plotly 차트, 윈도우 스티칭 Citation, 병렬 감사, 도메인 외 거절) 대화형 테스트 | **25분** |
 | **Task 4 (Lab 03)** | [**Lab 03: 클라우드 배포 (Cloud Run & Agent Engine)**](labs/03_cloud_deployment.md) | • **배포 트랙 A (Cloud Run)**: 컨테이너 이미지 빌드 후 Cloud Run 배포 및 외부 HTTPS A2A Agent Card URL 확보<br/>• **배포 트랙 B (Vertex AI Agent Engine)**: `vertexai.agent_engines.create(AdkApp)`를 통한 완전 관리형 런타임 배포 | **20분** |
 | **Task 5 (Lab 04)** | [**Lab 04: Gemini Enterprise 연동 & OAuth 2.0 설정**](labs/04_gemini_enterprise_integration.md) | • **OAuth 2.0 권한 위임**: Discovery Engine API에 `serverSideOauth2` 리소스 등록 (`redirect_uri`: `https://vertexaisearch.cloud.google.com/oauth-redirect`)<br/>• **Gemini Enterprise 콘솔 등록 (2가지 트랙 비교 실습)**:<br/>  - *Track A (Custom agent via A2A)*: Cloud Run 에이전트 카드 등록 (`defaultInputModes: ["text/plain"]` 스키마 보정 내장)<br/>  - *Track B (Custom agent via Agent Engine)*: Reasoning Engine ID 직접 바인딩<br/>• **E2E 시연 및 Teardown**: Gemini Enterprise 웹 앱에서 통합 질의 테스트 후 `teardown.sh` 리소스 정리 | **30분** |
+
+---
+
+## 📊 3.5 게이트웨이별 엔터프라이즈 실전 테스트 데이터셋 (총 100건 내장)
+
+각 게이트웨이의 NL2SQL 정확도, 인접 청크 윈도우 스티칭(`N-1 ~ N+1`), 그리고 2PC HITL 거버넌스를 충분히 검증할 수 있도록 **`data/` 디렉토리 및 BigQuery 시딩 스크립트(`scripts/seed_bigquery.py`)에 게이트웨이당 30건 이상(총 100건)의 엔터프라이즈 데이터셋**이 기본 포함되어 있습니다 (`[확인됨 / Verified: scripts/generate_datasets.py]`).
+
+| 게이트웨이 | 데이터셋 파일 경로 | 레코드 수 | 데이터 구성 및 주요 테스트 가능 항목 |
+| :--- | :--- | :---: | :--- |
+| **Gateway 1 (FinOps SQL)** | [`data/finops_billing_ledger.json`](data/finops_billing_ledger.json) | **32건** | • **8개 엔터프라이즈 부서**(AI Research, Data Platform, FinTech Security 등) 산하 **32개 GCP 프로젝트(`PROJ-AI-PROD-01` ~ `PROJ-OPS-MON-32`)**<br/>• 표준 소진율(`burn_rate_pct`), 유휴 GPU 낭비 비용(`idle_gpu_waste_usd`), 프로젝트/부서별 집계 및 `CRITICAL_OVERRUN` 필터링 지원 |
+| **Gateway 2 (Policy RAG)** | [`data/it_security_policy_chunks.json`](data/it_security_policy_chunks.json) | **36건** | • **12대 엔터프라이즈 보안/운영 규정**(`SEC-POL-2026-FW`, `FIN-POL-2026-GPU`, `NET-POL-2026-PSCI`, `IAM-POL-2026-OAUTH`, `DATA-POL-2026-DLP`, `SEC-POL-2026-CMEK`, `DB-POL-2026-SPANNER`, `K8S-POL-2026-GKE`, `API-POL-2026-APIGEE`, `DR-POL-2026-BCP`, `AI-POL-2026-ADK`, `LOG-POL-2026-SIEM`)<br/>• 각 규정당 **3개의 연속 청크(`Chunk 1: 사전 안전 점검`, `Chunk 2: 실행 SOP`, `Chunk 3: 감사 및 2PC 롤백`) = 총 36개 청크**로 구성되어 완벽한 윈도우 스티칭 테스트 가능 |
+| **Gateway 3 (ITSM Action)** | [`data/it_servicedesk_incidents.json`](data/it_servicedesk_incidents.json) | **32건** | • **32건의 실시간 IT 서비스 데스크 인시던트(`INC-2026-88401` ~ `INC-2026-88432`)**<br/>• `P1_CRITICAL` 장애 필터링, 특정 티켓/프로젝트별 상태 조회, 신규 `FIREWALL_OPEN` / `GPU_QUOTA_INCREASE` 요청 시 2PC 락(`lock:user:{id}:mutation`) 및 `PENDING_HITL_APPROVAL` 생성 검증 |
 
 ---
 
@@ -130,13 +142,12 @@ cp .env.example .env
 export PROJECT_ID=$(gcloud config get-value project)
 sed -i "s/<YOUR_PROJECT_ID>/${PROJECT_ID}/g" .env
 
-# 3. 원클릭 부트스트랩 실행 (BigQuery 데이터셋/테이블 생성 및 .venv 패키지 설치)
+# 3. 원클릭 부트스트랩 실행 (100건 데이터셋 BigQuery/로컬 시딩 및 .venv 패키지 설치)
 chmod +x scripts/setup_environment.sh
 ./scripts/setup_environment.sh
 
-# 4. Qwiklabs 자동 검증 테스트 스위트 실행 (5개 항목 전체 PASS 확인)
-source .venv/bin/activate
-python3 scripts/validate_agent.py
+# 4. Qwiklabs 자동 검증 테스트 스위트 실행 (8개 항목 / 100건 데이터셋 전체 PASS 확인)
+.venv/bin/python3 scripts/validate_agent.py
 
 # 5. Dual-Contract FastAPI 서버 및 대화형 웹 스튜디오 구동 (포트 8000)
 .venv/bin/uvicorn app.fast_api_app:app --host 0.0.0.0 --port 8000

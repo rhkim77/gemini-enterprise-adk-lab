@@ -1,0 +1,590 @@
+[
+  {
+    "policy_id": "SEC-POL-2026-FW",
+    "policy_title": "Production Firewall Port Opening & VPC-SC Ingress Policy",
+    "chunk_index": 1,
+    "similarity_score": 0.89,
+    "keywords": [
+      "firewall",
+      "port",
+      "tcp",
+      "443",
+      "8443",
+      "ingress",
+      "sec-pol-2026-fw"
+    ],
+    "chunk_text": "[PRE-REQUISITE SAFETY CHECK: SEC-POL-2026-FW] Before requesting any production firewall port opening (TCP 443/8443) or VPC-SC ingress rule modification, the requester must obtain Level-2 Security Architect approval and verify that the target subnet utilizes Private Service Connect Interface (PSC-I).",
+    "gcs_url": "https://storage.cloud.google.com/cymbal-enterprise-policies/SEC-POL-2026-FW-v2.pdf"
+  },
+  {
+    "policy_id": "SEC-POL-2026-FW",
+    "policy_title": "Production Firewall Port Opening & VPC-SC Ingress Policy",
+    "chunk_index": 2,
+    "similarity_score": 0.95,
+    "keywords": [
+      "firewall",
+      "port",
+      "tcp",
+      "443",
+      "8443",
+      "ingress",
+      "sec-pol-2026-fw"
+    ],
+    "chunk_text": "[EXECUTION SOP: SEC-POL-2026-FW] Step 1: Submit ticket via it_servicedesk_tool with action_type=FIREWALL_OPEN. Step 2: Attach Squid Proxy egress routing table if outbound internet access is required inside VPC-SC perimeter. Step 3: Verify automated firewall audit log within 15 minutes.",
+    "gcs_url": "https://storage.cloud.google.com/cymbal-enterprise-policies/SEC-POL-2026-FW-v2.pdf"
+  },
+  {
+    "policy_id": "SEC-POL-2026-FW",
+    "policy_title": "Production Firewall Port Opening & VPC-SC Ingress Policy",
+    "chunk_index": 3,
+    "similarity_score": 0.87,
+    "keywords": [
+      "firewall",
+      "port",
+      "tcp",
+      "443",
+      "8443",
+      "ingress",
+      "sec-pol-2026-fw"
+    ],
+    "chunk_text": "[POST-CHANGE AUDIT & ROLLBACK: SEC-POL-2026-FW] Any firewall rule that exhibits anomalous egress traffic exceeding 10GB/hour will be automatically rolled back via 2-Phase Commit (2PC) compensation lock (lock:user:id:mutation).",
+    "gcs_url": "https://storage.cloud.google.com/cymbal-enterprise-policies/SEC-POL-2026-FW-v2.pdf"
+  },
+  {
+    "policy_id": "FIN-POL-2026-GPU",
+    "policy_title": "H100/A100 GPU Quota Governance & FinOps Overrun Freeze Policy",
+    "chunk_index": 1,
+    "similarity_score": 0.89,
+    "keywords": [
+      "gpu",
+      "quota",
+      "a100",
+      "h100",
+      "overrun",
+      "burn rate",
+      "fin-pol-2026-gpu"
+    ],
+    "chunk_text": "[PRE-REQUISITE GOVERNANCE CHECK: FIN-POL-2026-GPU] Projects exceeding 120% Budget Burn Rate (such as PROJ-AI-PROD-01 at 132.37% or PROJ-LLM-SERVE-04 at 131.50%) are automatically flagged for GPU quota freeze.",
+    "gcs_url": "https://storage.cloud.google.com/cymbal-enterprise-policies/FIN-POL-2026-GPU-v2.pdf"
+  },
+  {
+    "policy_id": "FIN-POL-2026-GPU",
+    "policy_title": "H100/A100 GPU Quota Governance & FinOps Overrun Freeze Policy",
+    "chunk_index": 2,
+    "similarity_score": 0.95,
+    "keywords": [
+      "gpu",
+      "quota",
+      "a100",
+      "h100",
+      "overrun",
+      "burn rate",
+      "fin-pol-2026-gpu"
+    ],
+    "chunk_text": "[EXECUTION SOP: FIN-POL-2026-GPU] Step 1: Run finops_bq_tool to audit idle GPU waste USD. Step 2: Reclaim unattached A100/H100 Workbench instances. Step 3: Submit a 2PC HITL ticket (action_type=GPU_QUOTA_INCREASE) signed by the VP of AI Research.",
+    "gcs_url": "https://storage.cloud.google.com/cymbal-enterprise-policies/FIN-POL-2026-GPU-v2.pdf"
+  },
+  {
+    "policy_id": "FIN-POL-2026-GPU",
+    "policy_title": "H100/A100 GPU Quota Governance & FinOps Overrun Freeze Policy",
+    "chunk_index": 3,
+    "similarity_score": 0.87,
+    "keywords": [
+      "gpu",
+      "quota",
+      "a100",
+      "h100",
+      "overrun",
+      "burn rate",
+      "fin-pol-2026-gpu"
+    ],
+    "chunk_text": "[POST-CHANGE AUDIT & ROLLBACK: FIN-POL-2026-GPU] Approved emergency GPU allocations are monitored every 6 hours; if GPU utilization drops below 40%, nodes are automatically preempted and scaled down to zero.",
+    "gcs_url": "https://storage.cloud.google.com/cymbal-enterprise-policies/FIN-POL-2026-GPU-v2.pdf"
+  },
+  {
+    "policy_id": "NET-POL-2026-PSCI",
+    "policy_title": "Private Service Connect Interface (PSC-I) & Squid Proxy Outbound Routing Standard",
+    "chunk_index": 1,
+    "similarity_score": 0.89,
+    "keywords": [
+      "psc-i",
+      "squid",
+      "proxy",
+      "southbound",
+      "outbound",
+      "internet",
+      "net-pol-2026-psci"
+    ],
+    "chunk_text": "[PRE-REQUISITE NETWORK CHECK: NET-POL-2026-PSCI] Vertex AI Agent Engine uses PSC-I strictly for southbound private VPC connectivity. Direct public internet egress from VPC-SC protected agents is blocked by default.",
+    "gcs_url": "https://storage.cloud.google.com/cymbal-enterprise-policies/NET-POL-2026-PSCI-v2.pdf"
+  },
+  {
+    "policy_id": "NET-POL-2026-PSCI",
+    "policy_title": "Private Service Connect Interface (PSC-I) & Squid Proxy Outbound Routing Standard",
+    "chunk_index": 2,
+    "similarity_score": 0.95,
+    "keywords": [
+      "psc-i",
+      "squid",
+      "proxy",
+      "southbound",
+      "outbound",
+      "internet",
+      "net-pol-2026-psci"
+    ],
+    "chunk_text": "[EXECUTION SOP: NET-POL-2026-PSCI] Step 1: Provision a dedicated Proxy VM running Squid on TCP port 3128 inside the customer VPC with IPv4 forwarding enabled (net.ipv4.ip_forward=1). Step 2: Configure Internal Load Balancer (ILB) and route Agent Engine egress traffic through the Squid proxy.",
+    "gcs_url": "https://storage.cloud.google.com/cymbal-enterprise-policies/NET-POL-2026-PSCI-v2.pdf"
+  },
+  {
+    "policy_id": "NET-POL-2026-PSCI",
+    "policy_title": "Private Service Connect Interface (PSC-I) & Squid Proxy Outbound Routing Standard",
+    "chunk_index": 3,
+    "similarity_score": 0.87,
+    "keywords": [
+      "psc-i",
+      "squid",
+      "proxy",
+      "southbound",
+      "outbound",
+      "internet",
+      "net-pol-2026-psci"
+    ],
+    "chunk_text": "[POST-CHANGE AUDIT & ROLLBACK: NET-POL-2026-PSCI] All outbound domain requests passing through Squid Proxy TCP 3128 are logged to Cloud Logging and inspected against Chronicle SIEM threat feeds.",
+    "gcs_url": "https://storage.cloud.google.com/cymbal-enterprise-policies/NET-POL-2026-PSCI-v2.pdf"
+  },
+  {
+    "policy_id": "IAM-POL-2026-OAUTH",
+    "policy_title": "Gemini Enterprise End-User OAuth 2.0 Identity Delegation Policy",
+    "chunk_index": 1,
+    "similarity_score": 0.89,
+    "keywords": [
+      "oauth",
+      "serversideoauth2",
+      "redirect",
+      "authorization",
+      "identity",
+      "iam-pol-2026-oauth"
+    ],
+    "chunk_text": "[PRE-REQUISITE IDENTITY CHECK: IAM-POL-2026-OAUTH] Agents executing queries against user-scoped datasets (BigQuery ACLs, Google Drive, Jira) must never use over-privileged service accounts; OAuth 2.0 delegation is mandatory.",
+    "gcs_url": "https://storage.cloud.google.com/cymbal-enterprise-policies/IAM-POL-2026-OAUTH-v2.pdf"
+  },
+  {
+    "policy_id": "IAM-POL-2026-OAUTH",
+    "policy_title": "Gemini Enterprise End-User OAuth 2.0 Identity Delegation Policy",
+    "chunk_index": 2,
+    "similarity_score": 0.95,
+    "keywords": [
+      "oauth",
+      "serversideoauth2",
+      "redirect",
+      "authorization",
+      "identity",
+      "iam-pol-2026-oauth"
+    ],
+    "chunk_text": "[EXECUTION SOP: IAM-POL-2026-OAUTH] Step 1: Add https://vertexaisearch.cloud.google.com/oauth-redirect to Authorized Redirect URIs in GCP OAuth Credentials. Step 2: Register a serverSideOauth2 resource in Discovery Engine API (/v1alpha/projects/{PROJECT_ID}/locations/global/authorizations).",
+    "gcs_url": "https://storage.cloud.google.com/cymbal-enterprise-policies/IAM-POL-2026-OAUTH-v2.pdf"
+  },
+  {
+    "policy_id": "IAM-POL-2026-OAUTH",
+    "policy_title": "Gemini Enterprise End-User OAuth 2.0 Identity Delegation Policy",
+    "chunk_index": 3,
+    "similarity_score": 0.87,
+    "keywords": [
+      "oauth",
+      "serversideoauth2",
+      "redirect",
+      "authorization",
+      "identity",
+      "iam-pol-2026-oauth"
+    ],
+    "chunk_text": "[POST-CHANGE AUDIT & ROLLBACK: IAM-POL-2026-OAUTH] OAuth refresh tokens are encrypted at rest via Cloud KMS and automatically revoked if a user's corporate Google Workspace account is suspended.",
+    "gcs_url": "https://storage.cloud.google.com/cymbal-enterprise-policies/IAM-POL-2026-OAUTH-v2.pdf"
+  },
+  {
+    "policy_id": "DATA-POL-2026-DLP",
+    "policy_title": "Cloud DLP & Model Armor Pre-Inference Prompt Injection & PII Guardrail Policy",
+    "chunk_index": 1,
+    "similarity_score": 0.89,
+    "keywords": [
+      "dlp",
+      "pii",
+      "spii",
+      "model armor",
+      "injection",
+      "guardrail",
+      "data-pol-2026-dlp"
+    ],
+    "chunk_text": "[PRE-REQUISITE PRIVACY CHECK: DATA-POL-2026-DLP] All user prompts submitted via Gemini Enterprise must undergo pre-model inspection (<150ms SLA) for PII/SPII (SSN, Credit Card, API Keys) and Jailbreak/Prompt Injection attempts.",
+    "gcs_url": "https://storage.cloud.google.com/cymbal-enterprise-policies/DATA-POL-2026-DLP-v2.pdf"
+  },
+  {
+    "policy_id": "DATA-POL-2026-DLP",
+    "policy_title": "Cloud DLP & Model Armor Pre-Inference Prompt Injection & PII Guardrail Policy",
+    "chunk_index": 2,
+    "similarity_score": 0.95,
+    "keywords": [
+      "dlp",
+      "pii",
+      "spii",
+      "model armor",
+      "injection",
+      "guardrail",
+      "data-pol-2026-dlp"
+    ],
+    "chunk_text": "[EXECUTION SOP: DATA-POL-2026-DLP] Step 1: Attach Google Cloud Model Armor GuardrailPlugin to the ADK root_agent. Step 2: Configure de-identification templates to mask sensitive entities with [REDACTED_PII] prior to LLM token generation.",
+    "gcs_url": "https://storage.cloud.google.com/cymbal-enterprise-policies/DATA-POL-2026-DLP-v2.pdf"
+  },
+  {
+    "policy_id": "DATA-POL-2026-DLP",
+    "policy_title": "Cloud DLP & Model Armor Pre-Inference Prompt Injection & PII Guardrail Policy",
+    "chunk_index": 3,
+    "similarity_score": 0.87,
+    "keywords": [
+      "dlp",
+      "pii",
+      "spii",
+      "model armor",
+      "injection",
+      "guardrail",
+      "data-pol-2026-dlp"
+    ],
+    "chunk_text": "[POST-CHANGE AUDIT & ROLLBACK: DATA-POL-2026-DLP] Any session triggering 3 consecutive Model Armor high-severity prompt injection blocks is immediately terminated and reported to SecOps.",
+    "gcs_url": "https://storage.cloud.google.com/cymbal-enterprise-policies/DATA-POL-2026-DLP-v2.pdf"
+  },
+  {
+    "policy_id": "SEC-POL-2026-CMEK",
+    "policy_title": "Customer-Managed Encryption Keys (Cloud KMS CMEK) Rotation & Compliance Standard",
+    "chunk_index": 1,
+    "similarity_score": 0.89,
+    "keywords": [
+      "cmek",
+      "kms",
+      "encryption",
+      "key rotation",
+      "sec-pol-2026-cmek"
+    ],
+    "chunk_text": "[PRE-REQUISITE CRYPTO CHECK: SEC-POL-2026-CMEK] All Tier-1 BigQuery Gold tables, Vertex AI Agent Engine staging buckets, and Cloud Spanner databases must be encrypted using HSM-backed Cloud KMS CMEK keys.",
+    "gcs_url": "https://storage.cloud.google.com/cymbal-enterprise-policies/SEC-POL-2026-CMEK-v2.pdf"
+  },
+  {
+    "policy_id": "SEC-POL-2026-CMEK",
+    "policy_title": "Customer-Managed Encryption Keys (Cloud KMS CMEK) Rotation & Compliance Standard",
+    "chunk_index": 2,
+    "similarity_score": 0.95,
+    "keywords": [
+      "cmek",
+      "kms",
+      "encryption",
+      "key rotation",
+      "sec-pol-2026-cmek"
+    ],
+    "chunk_text": "[EXECUTION SOP: SEC-POL-2026-CMEK] Step 1: Create a symmetric encryption key in Cloud KMS with a 90-day automatic rotation schedule. Step 2: Grant roles/cloudkms.cryptoKeyEncrypterDecrypter to the Vertex AI and Discovery Engine service agents.",
+    "gcs_url": "https://storage.cloud.google.com/cymbal-enterprise-policies/SEC-POL-2026-CMEK-v2.pdf"
+  },
+  {
+    "policy_id": "SEC-POL-2026-CMEK",
+    "policy_title": "Customer-Managed Encryption Keys (Cloud KMS CMEK) Rotation & Compliance Standard",
+    "chunk_index": 3,
+    "similarity_score": 0.87,
+    "keywords": [
+      "cmek",
+      "kms",
+      "encryption",
+      "key rotation",
+      "sec-pol-2026-cmek"
+    ],
+    "chunk_text": "[POST-CHANGE AUDIT & ROLLBACK: SEC-POL-2026-CMEK] If a KMS key version is destroyed or disabled, dependent ADK agents immediately enter safe read-only fail-closed mode.",
+    "gcs_url": "https://storage.cloud.google.com/cymbal-enterprise-policies/SEC-POL-2026-CMEK-v2.pdf"
+  },
+  {
+    "policy_id": "DB-POL-2026-SPANNER",
+    "policy_title": "Cloud Spanner & AlloyDB Zero-Downtime Cross-Region Failover SOP",
+    "chunk_index": 1,
+    "similarity_score": 0.89,
+    "keywords": [
+      "spanner",
+      "alloydb",
+      "failover",
+      "database",
+      "rto",
+      "db-pol-2026-spanner"
+    ],
+    "chunk_text": "[PRE-REQUISITE DATABASE CHECK: DB-POL-2026-SPANNER] Production transactional databases supporting retail POS and FinTech ledgers must maintain multi-region read-write quorum with RTO < 5 seconds.",
+    "gcs_url": "https://storage.cloud.google.com/cymbal-enterprise-policies/DB-POL-2026-SPANNER-v2.pdf"
+  },
+  {
+    "policy_id": "DB-POL-2026-SPANNER",
+    "policy_title": "Cloud Spanner & AlloyDB Zero-Downtime Cross-Region Failover SOP",
+    "chunk_index": 2,
+    "similarity_score": 0.95,
+    "keywords": [
+      "spanner",
+      "alloydb",
+      "failover",
+      "database",
+      "rto",
+      "db-pol-2026-spanner"
+    ],
+    "chunk_text": "[EXECUTION SOP: DB-POL-2026-SPANNER] Step 1: Verify witness node health in us-central1 and us-east1. Step 2: Execute point-in-time recovery (PITR) validation weekly. Step 3: Route read-only analytical queries from ADK agents to read replicas.",
+    "gcs_url": "https://storage.cloud.google.com/cymbal-enterprise-policies/DB-POL-2026-SPANNER-v2.pdf"
+  },
+  {
+    "policy_id": "DB-POL-2026-SPANNER",
+    "policy_title": "Cloud Spanner & AlloyDB Zero-Downtime Cross-Region Failover SOP",
+    "chunk_index": 3,
+    "similarity_score": 0.87,
+    "keywords": [
+      "spanner",
+      "alloydb",
+      "failover",
+      "database",
+      "rto",
+      "db-pol-2026-spanner"
+    ],
+    "chunk_text": "[POST-CHANGE AUDIT & ROLLBACK: DB-POL-2026-SPANNER] Database mutation locks exceeding 3,000ms trigger automatic connection pool shedding to preserve core checkout availability.",
+    "gcs_url": "https://storage.cloud.google.com/cymbal-enterprise-policies/DB-POL-2026-SPANNER-v2.pdf"
+  },
+  {
+    "policy_id": "K8S-POL-2026-GKE",
+    "policy_title": "GKE Autopilot Binary Authorization & Container Image Signing Standard",
+    "chunk_index": 1,
+    "similarity_score": 0.89,
+    "keywords": [
+      "gke",
+      "kubernetes",
+      "binary authorization",
+      "container",
+      "docker",
+      "k8s-pol-2026-gke"
+    ],
+    "chunk_text": "[PRE-REQUISITE CONTAINER CHECK: K8S-POL-2026-GKE] Unverified or unsigned Docker images are strictly prohibited from running on production Cloud Run or GKE Autopilot clusters.",
+    "gcs_url": "https://storage.cloud.google.com/cymbal-enterprise-policies/K8S-POL-2026-GKE-v2.pdf"
+  },
+  {
+    "policy_id": "K8S-POL-2026-GKE",
+    "policy_title": "GKE Autopilot Binary Authorization & Container Image Signing Standard",
+    "chunk_index": 2,
+    "similarity_score": 0.95,
+    "keywords": [
+      "gke",
+      "kubernetes",
+      "binary authorization",
+      "container",
+      "docker",
+      "k8s-pol-2026-gke"
+    ],
+    "chunk_text": "[EXECUTION SOP: K8S-POL-2026-GKE] Step 1: Build container images via Cloud Build (gcloud builds submit). Step 2: Scan image vulnerabilities via Artifact Analysis (zero CRITICAL CVEs allowed). Step 3: Attest image signature via Binary Authorization.",
+    "gcs_url": "https://storage.cloud.google.com/cymbal-enterprise-policies/K8S-POL-2026-GKE-v2.pdf"
+  },
+  {
+    "policy_id": "K8S-POL-2026-GKE",
+    "policy_title": "GKE Autopilot Binary Authorization & Container Image Signing Standard",
+    "chunk_index": 3,
+    "similarity_score": 0.87,
+    "keywords": [
+      "gke",
+      "kubernetes",
+      "binary authorization",
+      "container",
+      "docker",
+      "k8s-pol-2026-gke"
+    ],
+    "chunk_text": "[POST-CHANGE AUDIT & ROLLBACK: K8S-POL-2026-GKE] Any runtime container drift or unauthorized shell execution inside a pod triggers immediate pod eviction and forensic snapshot capture.",
+    "gcs_url": "https://storage.cloud.google.com/cymbal-enterprise-policies/K8S-POL-2026-GKE-v2.pdf"
+  },
+  {
+    "policy_id": "API-POL-2026-APIGEE",
+    "policy_title": "Apigee X API Gateway mTLS & Custom Header Passthrough Architecture",
+    "chunk_index": 1,
+    "similarity_score": 0.89,
+    "keywords": [
+      "apigee",
+      "api gateway",
+      "mtls",
+      "header",
+      "rate limit",
+      "api-pol-2026-apigee"
+    ],
+    "chunk_text": "[PRE-REQUISITE GATEWAY CHECK: API-POL-2026-APIGEE] External partner and A2A agent invocations crossing organizational boundaries must terminate TLS at Apigee X with mutual TLS (mTLS) client certificate verification.",
+    "gcs_url": "https://storage.cloud.google.com/cymbal-enterprise-policies/API-POL-2026-APIGEE-v2.pdf"
+  },
+  {
+    "policy_id": "API-POL-2026-APIGEE",
+    "policy_title": "Apigee X API Gateway mTLS & Custom Header Passthrough Architecture",
+    "chunk_index": 2,
+    "similarity_score": 0.95,
+    "keywords": [
+      "apigee",
+      "api gateway",
+      "mtls",
+      "header",
+      "rate limit",
+      "api-pol-2026-apigee"
+    ],
+    "chunk_text": "[EXECUTION SOP: API-POL-2026-APIGEE] Step 1: Configure SpikeArrest policy at 500 requests/second per tenant. Step 2: When integrating Gemini Enterprise with Apigee-proxied A2A endpoints, configure OAuth 2.0 Bearer token validation instead of custom API key headers.",
+    "gcs_url": "https://storage.cloud.google.com/cymbal-enterprise-policies/API-POL-2026-APIGEE-v2.pdf"
+  },
+  {
+    "policy_id": "API-POL-2026-APIGEE",
+    "policy_title": "Apigee X API Gateway mTLS & Custom Header Passthrough Architecture",
+    "chunk_index": 3,
+    "similarity_score": 0.87,
+    "keywords": [
+      "apigee",
+      "api gateway",
+      "mtls",
+      "header",
+      "rate limit",
+      "api-pol-2026-apigee"
+    ],
+    "chunk_text": "[POST-CHANGE AUDIT & ROLLBACK: API-POL-2026-APIGEE] Clients exceeding HTTP 429 quota thresholds for more than 60 seconds are dynamically rate-limited at the Cloud Armor edge.",
+    "gcs_url": "https://storage.cloud.google.com/cymbal-enterprise-policies/API-POL-2026-APIGEE-v2.pdf"
+  },
+  {
+    "policy_id": "DR-POL-2026-BCP",
+    "policy_title": "Enterprise Business Continuity & Disaster Recovery (BCP/DR) Drill Standard",
+    "chunk_index": 1,
+    "similarity_score": 0.89,
+    "keywords": [
+      "disaster recovery",
+      "dr",
+      "bcp",
+      "backup",
+      "outage",
+      "dr-pol-2026-bcp"
+    ],
+    "chunk_text": "[PRE-REQUISITE DR CHECK: DR-POL-2026-BCP] All mission-critical AI agents and data pipelines must undergo bi-annual regional blackout simulation drills.",
+    "gcs_url": "https://storage.cloud.google.com/cymbal-enterprise-policies/DR-POL-2026-BCP-v2.pdf"
+  },
+  {
+    "policy_id": "DR-POL-2026-BCP",
+    "policy_title": "Enterprise Business Continuity & Disaster Recovery (BCP/DR) Drill Standard",
+    "chunk_index": 2,
+    "similarity_score": 0.95,
+    "keywords": [
+      "disaster recovery",
+      "dr",
+      "bcp",
+      "backup",
+      "outage",
+      "dr-pol-2026-bcp"
+    ],
+    "chunk_text": "[EXECUTION SOP: DR-POL-2026-BCP] Step 1: Drain traffic from primary region (us-central1) using Cloud Load Balancing global weights. Step 2: Promote secondary region (us-east1) Agent Engine endpoints. Step 3: Validate BigQuery cross-region dataset replication.",
+    "gcs_url": "https://storage.cloud.google.com/cymbal-enterprise-policies/DR-POL-2026-BCP-v2.pdf"
+  },
+  {
+    "policy_id": "DR-POL-2026-BCP",
+    "policy_title": "Enterprise Business Continuity & Disaster Recovery (BCP/DR) Drill Standard",
+    "chunk_index": 3,
+    "similarity_score": 0.87,
+    "keywords": [
+      "disaster recovery",
+      "dr",
+      "bcp",
+      "backup",
+      "outage",
+      "dr-pol-2026-bcp"
+    ],
+    "chunk_text": "[POST-CHANGE AUDIT & ROLLBACK: DR-POL-2026-BCP] Post-drill RTO and RPO telemetry reports must be archived in the compliance vault within 24 hours of drill completion.",
+    "gcs_url": "https://storage.cloud.google.com/cymbal-enterprise-policies/DR-POL-2026-BCP-v2.pdf"
+  },
+  {
+    "policy_id": "AI-POL-2026-ADK",
+    "policy_title": "Google ADK 2.0 Agent Architecture & Dual-Contract Release Governance",
+    "chunk_index": 1,
+    "similarity_score": 0.89,
+    "keywords": [
+      "adk",
+      "google-adk",
+      "agent-card",
+      "text/plain",
+      "a2a",
+      "ai-pol-2026-adk"
+    ],
+    "chunk_text": "[PRE-REQUISITE AI GOVERNANCE CHECK: AI-POL-2026-ADK] All custom agents registered in Gemini Enterprise must pin google-adk==2.8.0 and mcp<2.0.0 (mcp==1.29.1) to ensure deterministic runtime stability.",
+    "gcs_url": "https://storage.cloud.google.com/cymbal-enterprise-policies/AI-POL-2026-ADK-v2.pdf"
+  },
+  {
+    "policy_id": "AI-POL-2026-ADK",
+    "policy_title": "Google ADK 2.0 Agent Architecture & Dual-Contract Release Governance",
+    "chunk_index": 2,
+    "similarity_score": 0.95,
+    "keywords": [
+      "adk",
+      "google-adk",
+      "agent-card",
+      "text/plain",
+      "a2a",
+      "ai-pol-2026-adk"
+    ],
+    "chunk_text": "[EXECUTION SOP: AI-POL-2026-ADK] Step 1: Structure tools into 3 Decoupled Gateways (SQL Analytics, Vector RAG, Action API). Step 2: Ensure /.well-known/agent-card.json advertises defaultInputModes: ['text/plain']. Step 3: Pass validate_agent.py with 5/5 score.",
+    "gcs_url": "https://storage.cloud.google.com/cymbal-enterprise-policies/AI-POL-2026-ADK-v2.pdf"
+  },
+  {
+    "policy_id": "AI-POL-2026-ADK",
+    "policy_title": "Google ADK 2.0 Agent Architecture & Dual-Contract Release Governance",
+    "chunk_index": 3,
+    "similarity_score": 0.87,
+    "keywords": [
+      "adk",
+      "google-adk",
+      "agent-card",
+      "text/plain",
+      "a2a",
+      "ai-pol-2026-adk"
+    ],
+    "chunk_text": "[POST-CHANGE AUDIT & ROLLBACK: AI-POL-2026-ADK] Every agent turn must asynchronously log user query, invoked tool names, and TTFT latency to BigQuery dataset agent_telemetry.",
+    "gcs_url": "https://storage.cloud.google.com/cymbal-enterprise-policies/AI-POL-2026-ADK-v2.pdf"
+  },
+  {
+    "policy_id": "LOG-POL-2026-SIEM",
+    "policy_title": "Chronicle SIEM & BigQuery Agent Telemetry 365-Day Audit Retention Policy",
+    "chunk_index": 1,
+    "similarity_score": 0.89,
+    "keywords": [
+      "logging",
+      "siem",
+      "chronicle",
+      "audit",
+      "telemetry",
+      "retention",
+      "log-pol-2026-siem"
+    ],
+    "chunk_text": "[PRE-REQUISITE AUDIT CHECK: LOG-POL-2026-SIEM] Enterprise regulatory compliance mandates immutable 365-day retention for all AI agent tool invocations, SQL queries generated, and HITL approvals.",
+    "gcs_url": "https://storage.cloud.google.com/cymbal-enterprise-policies/LOG-POL-2026-SIEM-v2.pdf"
+  },
+  {
+    "policy_id": "LOG-POL-2026-SIEM",
+    "policy_title": "Chronicle SIEM & BigQuery Agent Telemetry 365-Day Audit Retention Policy",
+    "chunk_index": 2,
+    "similarity_score": 0.95,
+    "keywords": [
+      "logging",
+      "siem",
+      "chronicle",
+      "audit",
+      "telemetry",
+      "retention",
+      "log-pol-2026-siem"
+    ],
+    "chunk_text": "[EXECUTION SOP: LOG-POL-2026-SIEM] Step 1: Enable BigQueryAgentAnalyticsPlugin on all ADK apps. Step 2: Route Cloud Audit Logs (DATA_READ, DATA_WRITE) from BigQuery and Discovery Engine to a locked Cloud Storage bucket with Object Retention Lock.",
+    "gcs_url": "https://storage.cloud.google.com/cymbal-enterprise-policies/LOG-POL-2026-SIEM-v2.pdf"
+  },
+  {
+    "policy_id": "LOG-POL-2026-SIEM",
+    "policy_title": "Chronicle SIEM & BigQuery Agent Telemetry 365-Day Audit Retention Policy",
+    "chunk_index": 3,
+    "similarity_score": 0.87,
+    "keywords": [
+      "logging",
+      "siem",
+      "chronicle",
+      "audit",
+      "telemetry",
+      "retention",
+      "log-pol-2026-siem"
+    ],
+    "chunk_text": "[POST-CHANGE AUDIT & ROLLBACK: LOG-POL-2026-SIEM] Unauthorized attempts to delete or alter agent_telemetry tables trigger an immediate P1 SecOps incident and IAM permission freeze.",
+    "gcs_url": "https://storage.cloud.google.com/cymbal-enterprise-policies/LOG-POL-2026-SIEM-v2.pdf"
+  }
+]
