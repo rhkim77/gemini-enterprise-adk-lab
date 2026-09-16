@@ -48,6 +48,20 @@ if [ ! -f .env ] && [ -f .env.example ]; then
   cp .env.example .env
 fi
 
+# [Migration] Legacy .env files (< v2.2.0) lack the Vertex AI backend flags. Without them
+# google-genai boots in Gemini Developer API mode and raises "No API key was provided.",
+# which the app absorbs and silently downgrades to the deterministic router.
+if [ -f .env ]; then
+  if ! grep -q "GOOGLE_GENAI_USE_VERTEXAI" .env; then
+    printf '\n# [Auto-added by setup_environment.sh] Route google-genai through Vertex AI (ADC)\nGOOGLE_GENAI_USE_VERTEXAI="TRUE"\n' >> .env
+    echo "🔧 Migrated legacy .env: added GOOGLE_GENAI_USE_VERTEXAI=\"TRUE\""
+  fi
+  if ! grep -q "GOOGLE_CLOUD_LOCATION" .env; then
+    printf 'GOOGLE_CLOUD_LOCATION="us-central1"\n' >> .env
+    echo "🔧 Migrated legacy .env: added GOOGLE_CLOUD_LOCATION=\"us-central1\""
+  fi
+fi
+
 # Auto-detect active GCP Project ID if PROJECT_ID is unset or still set to placeholder
 DETECTED_PROJECT=$("${GCLOUD_BIN}" config get-value project --quiet 2>/dev/null || echo "")
 
@@ -93,16 +107,13 @@ else
   echo "[Step 1/4] Skipping gcloud services enable (PROJECT_ID not configured)."
 fi
 
-# 2. Create Python Virtual Environment & Install Pinned Dependencies via Corp Airlock
+# 2. Create Python Virtual Environment & Install Pinned Dependencies
 echo "[Step 2/4] Verifying Python Virtual Environment (.venv)..."
 export PATH="$HOME/.local/bin:$PATH"
 if [ -x ".venv/bin/python3" ] && .venv/bin/python3 -c "import google.adk, google.cloud.bigquery, fastapi" &>/dev/null; then
   echo "  ✅ Existing .venv verified with google-adk, google-cloud-bigquery, and fastapi installed."
 else
-  echo "  📦 Installing dependencies into .venv via Corp Airlock (gpkg setup + uv)..."
-  if command -v gpkg &> /dev/null; then
-    eval "$(gpkg setup 2>/dev/null | grep '^export ')" || true
-  fi
+  echo "  📦 Installing dependencies into .venv (uv if available, otherwise python3 -m venv + pip)..."
   if command -v uv &> /dev/null; then
     uv venv .venv
     uv pip install -r requirements.txt

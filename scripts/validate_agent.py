@@ -161,22 +161,52 @@ def run_validation_suite():
         print(f"  [FAIL] Service desk ticket creation or OAuth audit failed: {res_ticket}")
         failed += 1
 
-    # Test 8: Coordinator Governance, ADK before_agent_callback Wiring & A2A Agent Card Schema
-    print("\n[TEST 8/8] Coordinator Governance, ADK Callback Wiring & A2A Agent Card Schema...")
+    # Test 8: Coordinator Governance, ADK before_agent_callback Contract & A2A Agent Card Schema
+    print("\n[TEST 8/8] Coordinator Governance, ADK Callback Contract & A2A Agent Card Schema...")
+
+    # 8-1. Direct dict invocation (unit-test style)
     mock_state = {"top_overrun_project": "PROJ-OLD-99", "top_overrun_date": "2026-01-01"}
     updated_state = validate_and_update_temporal_cache(mock_state, current_date_str="2026-09-16")
+
+    # 8-2. CRITICAL: Reproduce ADK's real invocation contract `callback(callback_context=ctx)`.
+    #      A simple `is not None` check cannot detect a signature mismatch, which would crash
+    #      the ADK Runner at runtime while this suite still reported PASS.
+    class _MockCallbackContext:
+        """Minimal stand-in for google.adk.agents.callback_context.CallbackContext."""
+
+        def __init__(self):
+            self.state = {"top_overrun_project": "PROJ-STALE-88", "top_overrun_date": "2026-01-01"}
+
+    adk_callback = getattr(root_agent, "before_agent_callback", None)
+    callback_contract_ok = False
+    callback_error = ""
+    if callable(adk_callback):
+        try:
+            mock_ctx = _MockCallbackContext()
+            returned = adk_callback(callback_context=mock_ctx)
+            # ADK requires None so the agent proceeds; state must be purged in-place.
+            callback_contract_ok = returned is None and mock_ctx.state["top_overrun_project"] is None
+            if not callback_contract_ok:
+                callback_error = f"returned={returned!r}, state={mock_ctx.state}"
+        except TypeError as exc:
+            callback_error = f"ADK keyword-invocation contract broken -> {exc}"
+        except Exception as exc:  # noqa: BLE001
+            callback_error = f"Unexpected callback error -> {exc}"
+    else:
+        callback_error = "before_agent_callback is not bound to root_agent"
+
     card = get_hardened_agent_card("https://finops-adk-agent.a.run.app")
-    has_adk_callback = getattr(root_agent, "before_agent_callback", None) is not None
+
     if (
         updated_state.get("top_overrun_project") is None
-        and has_adk_callback
+        and callback_contract_ok
         and card.get("defaultInputModes") == ["text/plain"]
         and card.get("defaultOutputModes") == ["text/plain"]
     ):
-        print("  [PASS] Completed in 0.00s — ADK before_agent_callback bound, cache invalidation & A2A Card schema verified.")
+        print("  [PASS] Completed in 0.00s — ADK callback contract `callback(callback_context=...)` honored, cache purged & A2A Card schema verified.")
         passed += 1
     else:
-        print(f"  [FAIL] Governance check failed: callback={has_adk_callback}, state={updated_state}, card={card}")
+        print(f"  [FAIL] Governance check failed: callback_contract={callback_contract_ok} ({callback_error}), state={updated_state}")
         failed += 1
 
     print("\n" + "=" * 84)

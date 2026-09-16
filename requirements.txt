@@ -1,7 +1,10 @@
 # Core Google ADK & GenAI SDK
-google-adk>=0.1.0
-mcp<2.0.0
-google-genai>=0.1.1
+# ADK 2.x is REQUIRED: base_agent.py invokes lifecycle callbacks by keyword
+# (`callback(callback_context=...)`). ADK 1.x uses a different contract and will
+# silently break `before_agent_callback` wiring in this lab.
+google-adk>=2.8.0,<3.0.0
+mcp>=1.30.0,<2.0.0
+google-genai>=2.23.0,<3.0.0
 google-cloud-aiplatform>=1.70.0
 google-cloud-bigquery>=3.25.0
 

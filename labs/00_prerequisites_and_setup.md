@@ -78,6 +78,7 @@ sed -i "s/<YOUR_PROJECT_ID>/${PROJECT_ID}/g" .env
 cat .env
 ```
 * `USE_ADK_LLM="true"`가 기본 설정되어 있어, GCP 인증 또는 Gemini API 키가 활성화된 환경에서는 실제 **Google ADK `InMemoryRunner` + `gemini-2.5-flash` 모델**이 Tool Calling을 수행합니다 (오프라인 환경에서는 결정론적 하이브리드 라우터로 자동 폴백).
+* ⚠️ **`GOOGLE_GENAI_USE_VERTEXAI="TRUE"` 및 `GOOGLE_CLOUD_LOCATION="us-central1"`은 필수 항목입니다.** 이 두 값이 없으면 `google-genai` SDK가 Vertex AI(ADC 인증)가 아닌 **Gemini Developer API 모드**로 부팅되어 `ValueError: No API key was provided.` 예외가 발생하고, 애플리케이션은 이를 내부에서 흡수한 뒤 **조용히 결정론적 라우터로 폴백**합니다 (실제 ADK LLM이 동작하지 않음). 이전 버전의 `.env`를 재사용하는 경우 반드시 두 줄을 추가하세요.
 * `ITSM_MODE="MOCK"`이 기본 설정되어 있어, 별도의 외부 ITSM 과금 없이 로컬/Cloud Shell에서 OAuth 2.0 신원 위임 및 2PC HITL 티켓 생성을 100% 동일하게 검증할 수 있습니다.
 
 ---
@@ -92,13 +93,16 @@ chmod +x scripts/setup_environment.sh
 ```
 
 ### 스크립트 내부 자동 수행 내역
-1. **GCP 필수 API 활성화**: Vertex AI, Discovery Engine(Gemini Enterprise), BigQuery, Cloud Run, Cloud Build API를 활성화합니다.
-2. **BigQuery 데이터셋 생성**: `enterprise_finops_gold` (비즈니스 데이터 및 벡터 임베딩) 및 `agent_telemetry` (에이전트 실행 감사 로그) 데이터셋을 생성합니다.
-3. **핵심 테이블 100건 데이터 시딩(Seeding)**:
+스크립트는 **Preflight → Step 1~4** 순서로 실행되며, 각 단계는 실패 시 명확한 원인 메시지를 출력하고 중단됩니다.
+
+0. **[Preflight] `gcloud` SDK 및 인증 검증**: Google Cloud SDK 설치 여부를 확인하고(미검출 시 `~/google-cloud-sdk`, `/opt`, `/usr/local/bin` 등 표준 경로를 자동 탐색해 `PATH`에 추가), Application Default Credentials(ADC) 인증 상태와 활성 `PROJECT_ID`를 점검한 뒤 `.env` 파일을 자동 구성합니다.
+1. **[Step 1/4] GCP 필수 API 활성화**: Vertex AI, Discovery Engine(Gemini Enterprise), BigQuery, Cloud Run, Cloud Build API를 활성화합니다 (`PROJECT_ID` 미설정 시 로컬 모드로 스킵).
+2. **[Step 2/4] Python 가상환경 구축**: `uv` (또는 `python3 -m venv`)를 통해 `.venv` 가상환경을 생성하고 `requirements.txt`의 필수 패키지(`google-adk`, `google-genai`, `fastapi` 등)를 설치합니다.
+3. **[Step 3/4] BigQuery 데이터셋 생성 및 핵심 테이블 100건 데이터 시딩(Seeding)**: `enterprise_finops_gold` (비즈니스 데이터 및 벡터 임베딩), `agent_telemetry` (에이전트 실행 감사 로그) 데이터셋을 생성한 뒤 아래 3개 테이블을 적재합니다.
    - `enterprise_finops_gold.cloud_billing_export` (**32건**): 8개 엔터프라이즈 부서 산하 32개 프로젝트의 월 예산, 당월 지출액, 표준 공식이 적용된 예산 소진율(Burn Rate %), 유휴 GPU 낭비 비용 데이터를 적재합니다 (`PROJ-AI-PROD-01`은 `132.37% CRITICAL_OVERRUN` 상태).
    - `enterprise_finops_gold.it_security_policy_embeddings` (**36건**): **인접 청크 윈도우 스티칭(`N-1 ~ N+1`)** 검증을 위해 12대 보안/운영 규정(`SEC-POL-2026-FW`, `FIN-POL-2026-GPU`, `NET-POL-2026-PSCI`, `DATA-POL-2026-DLP` 등) × 3개 연속 청크 = 총 36개 청크를 적재합니다.
    - `enterprise_finops_gold.itsm_realtime_incidents` (**32건**): 실시간 서비스 데스크 장애 티켓(`INC-2026-88401` ~ `INC-2026-88432`) 및 2PC 락 상태를 적재합니다.
-4. **Python 가상환경 구축**: `uv` (또는 `python3 -m venv`)를 통해 `.venv` 가상환경을 생성하고 필수 패키지를 설치합니다.
+4. **[Step 4/4] 자동 검증 스위트 실행**: `scripts/validate_agent.py`를 자동 실행하여 3대 도구 게이트웨이, OAuth 2.0 위임, ADK 콜백 계약을 포함한 **8개 테스트**를 즉시 검증합니다. (별도로 수동 실행할 필요 없이 부트스트랩 종료 시점에 `8 PASSED, 0 FAILED` 결과를 확인할 수 있습니다.)
 
 ---
 

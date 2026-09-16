@@ -142,7 +142,7 @@ Gemini Enterprise 콘솔 개요 페이지에서 **Web App URL**을 클릭하여 
 실습을 모두 마친 후 불필요한 클라우드 과금이 발생하지 않도록 정리 스크립트를 실행합니다:
 
 ```bash
-cd /usr/local/google/home/ryunghwa/Dev/GE_test/gemini-enterprise-adk-lab
+cd gemini-enterprise-adk-lab
 chmod +x scripts/teardown.sh
 ./scripts/teardown.sh
 ```

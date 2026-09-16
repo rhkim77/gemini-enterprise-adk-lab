@@ -101,8 +101,8 @@ Project ID: local-lab-project | ITSM Mode: MOCK
 [TEST 7/8] Gateway 3: Dual-Mode 2PC HITL Ticket Creation & OAuth 2.0 Delegation Audit...
   [PASS] Completed in 0.00s — 2PC lock, HITL flag & OAuth 2.0 identity (architect@cymbal.enterprise) verified.
 
-[TEST 8/8] Coordinator Governance, ADK Callback Wiring & A2A Agent Card Schema...
-  [PASS] Completed in 0.00s — ADK before_agent_callback bound, cache invalidation & A2A Card schema verified.
+[TEST 8/8] Coordinator Governance, ADK Callback Contract & A2A Agent Card Schema...
+  [PASS] Completed in 0.00s — ADK callback contract `callback(callback_context=...)` honored, cache purged & A2A Card schema verified.
 
 ====================================================================================
 📊 VALIDATION SUMMARY: 8 PASSED, 0 FAILED (TOTAL: 8 TESTS | 100 DATA RECORDS)

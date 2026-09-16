@@ -60,8 +60,10 @@ def resolve_project_id() -> str:
     env_copy["CLOUDSDK_CORE_DISABLE_PROMPTS"] = "1"
     for gcloud_bin in (
         "gcloud",
-        "/usr/local/google/home/ryunghwa/google-cloud-sdk/bin/gcloud",
+        str(Path.home() / "google-cloud-sdk" / "bin" / "gcloud"),
         "/google/google-cloud-sdk/bin/gcloud",
+        "/opt/google-cloud-sdk/bin/gcloud",
+        "/usr/local/bin/gcloud",
         "/usr/bin/gcloud",
     ):
         try:

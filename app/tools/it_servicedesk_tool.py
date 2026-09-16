@@ -15,7 +15,7 @@ import logging
 import os
 import uuid
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +38,7 @@ def get_current_oauth_context() -> Dict[str, str]:
 
 
 def _load_itsm_incidents() -> List[Dict[str, Any]]:
-    """Loads 32 real-time ITSM incident records from JSON."""
+    """Loads 32 real-time ITSM incident records from JSON (Gold Ledger mirror / offline fallback)."""
     if _DATA_PATH.exists():
         with open(_DATA_PATH, "r", encoding="utf-8") as f:
             return json.load(f)
@@ -46,6 +46,61 @@ def _load_itsm_incidents() -> List[Dict[str, Any]]:
 
 
 _ITSM_INCIDENTS_DB: List[Dict[str, Any]] = _load_itsm_incidents()
+
+
+def _resolve_project_id() -> str:
+    """Resolves active GCP Project ID from environment, ~/.config/gcloud, or google.auth.default()."""
+    for k in ("PROJECT_ID", "GOOGLE_CLOUD_PROJECT"):
+        val = os.getenv(k, "").strip().strip('"').strip("'")
+        if val and val != "<YOUR_PROJECT_ID>":
+            return val
+    try:
+        import configparser
+
+        cfg = Path.home() / ".config" / "gcloud" / "configurations" / "config_default"
+        if cfg.exists():
+            cp = configparser.ConfigParser()
+            cp.read(cfg)
+            if cp.has_option("core", "project"):
+                p = cp.get("core", "project").strip()
+                if p and p != "<YOUR_PROJECT_ID>":
+                    return p
+    except Exception:
+        pass
+    try:
+        import google.auth
+
+        _, proj = google.auth.default()
+        if proj and proj != "<YOUR_PROJECT_ID>":
+            return proj
+    except Exception:
+        pass
+    return ""
+
+
+def _query_live_incidents(where_clause: str) -> Tuple[List[Dict[str, Any]], str]:
+    """Queries the live BigQuery `itsm_realtime_incidents` table, falling back to the local mirror.
+
+    Returns:
+        (incident rows, source tag) — source tag reports whether data came from BigQuery or the mirror.
+    """
+    project_id = _resolve_project_id()
+    dataset_id = os.getenv("BQ_FINOPS_DATASET", "enterprise_finops_gold")
+    if not project_id:
+        return [], "Local Gold Ledger Mirror"
+
+    table_fqn = f"{project_id}.{dataset_id}.itsm_realtime_incidents"
+    try:
+        from google.cloud import bigquery
+
+        client = bigquery.Client(project=project_id)
+        sql = f"SELECT * FROM `{table_fqn}` WHERE {where_clause} ORDER BY ticket_id ASC"
+        rows = [dict(r) for r in client.query(sql).result(timeout=5.0)]
+        if rows:
+            return rows, f"Live BigQuery (`{table_fqn}`)"
+    except Exception as exc:
+        logger.info("BigQuery ITSM query skipped/fallback to local Gold Ledger mirror: %s", exc)
+    return [], "Local Gold Ledger Mirror"
 
 
 def it_servicedesk_tool(
@@ -147,22 +202,28 @@ def it_servicedesk_tool(
     # 2. Match specific Ticket ID (e.g. INC-2026-88401 .. INC-2026-88432)
     ticket_matches = [inc for inc in _ITSM_INCIDENTS_DB if inc["ticket_id"].upper() in proj_upper]
     if ticket_matches:
+        target_id = ticket_matches[0]["ticket_id"]
+        bq_rows, source_tag = _query_live_incidents(f"ticket_id = '{target_id}'")
+        matched = bq_rows[0] if bq_rows else ticket_matches[0]
         return {
             "gateway": f"Gateway 3: IT Service Desk Incident Lookup (Mode: {itsm_mode})",
             "bigquery_table": bq_table_ref,
+            "data_source": source_tag,
             "total_dataset_records": len(_ITSM_INCIDENTS_DB),
             "authenticated_requester": resolved_email,
             "oauth2_delegation_status": oauth_status,
-            "matched_ticket": ticket_matches[0],
+            "matched_ticket": matched,
             "timestamp": timestamp_iso,
         }
 
     # 3. Match by Severity filter (e.g. P1_CRITICAL)
     if "P1" in proj_upper or "CRITICAL" in proj_upper:
-        p1_tickets = [inc for inc in _ITSM_INCIDENTS_DB if inc["severity"] == "P1_CRITICAL"]
+        bq_rows, source_tag = _query_live_incidents("severity = 'P1_CRITICAL'")
+        p1_tickets = bq_rows or [inc for inc in _ITSM_INCIDENTS_DB if inc["severity"] == "P1_CRITICAL"]
         return {
             "gateway": f"Gateway 3: IT Service Desk Telemetry Gateway (Mode: {itsm_mode})",
             "bigquery_table": bq_table_ref,
+            "data_source": source_tag,
             "total_dataset_records": len(_ITSM_INCIDENTS_DB),
             "authenticated_requester": resolved_email,
             "oauth2_delegation_status": oauth_status,
@@ -173,33 +234,40 @@ def it_servicedesk_tool(
         }
 
     # 4. Match by Project ID across the 32 incidents
-    proj_tickets = [inc for inc in _ITSM_INCIDENTS_DB if inc["project_id"].upper() in proj_upper]
-    if proj_tickets:
+    local_proj_tickets = [inc for inc in _ITSM_INCIDENTS_DB if inc["project_id"].upper() in proj_upper]
+    if local_proj_tickets:
+        target_project = local_proj_tickets[0]["project_id"]
+        bq_rows, source_tag = _query_live_incidents(f"project_id = '{target_project}'")
+        proj_tickets = bq_rows or local_proj_tickets
         return {
             "gateway": f"Gateway 3: IT Service Desk Telemetry Gateway (Mode: {itsm_mode})",
             "bigquery_table": bq_table_ref,
+            "data_source": source_tag,
             "total_dataset_records": len(_ITSM_INCIDENTS_DB),
             "authenticated_requester": resolved_email,
             "oauth2_delegation_status": oauth_status,
-            "project_id": proj_tickets[0]["project_id"],
+            "project_id": target_project,
             "active_incidents_count": len(proj_tickets),
             "open_tickets": proj_tickets,
             "timestamp": timestamp_iso,
         }
 
     # 5. Default: Return summary of all 32 ITSM incidents
-    p1_count = sum(1 for inc in _ITSM_INCIDENTS_DB if inc["severity"] == "P1_CRITICAL")
-    hitl_count = sum(1 for inc in _ITSM_INCIDENTS_DB if inc["status"] == "PENDING_HITL_APPROVAL")
+    bq_rows, source_tag = _query_live_incidents("TRUE")
+    all_incidents = bq_rows or _ITSM_INCIDENTS_DB
+    p1_count = sum(1 for inc in all_incidents if inc["severity"] == "P1_CRITICAL")
+    hitl_count = sum(1 for inc in all_incidents if inc["status"] == "PENDING_HITL_APPROVAL")
     return {
         "gateway": f"Gateway 3: IT Service Desk Fleet Overview (Mode: {itsm_mode})",
         "bigquery_table": bq_table_ref,
-        "total_dataset_records": len(_ITSM_INCIDENTS_DB),
+        "data_source": source_tag,
+        "total_dataset_records": len(all_incidents),
         "authenticated_requester": resolved_email,
         "oauth2_delegation_status": oauth_status,
-        "active_incidents_count": len(_ITSM_INCIDENTS_DB),
+        "active_incidents_count": len(all_incidents),
         "p1_critical_count": p1_count,
         "pending_hitl_approval_count": hitl_count,
-        "open_tickets": _ITSM_INCIDENTS_DB[:10],
-        "note": f"Showing top 10 of {len(_ITSM_INCIDENTS_DB)} total ITSM incidents across fleet.",
+        "open_tickets": all_incidents[:10],
+        "note": f"Showing top 10 of {len(all_incidents)} total ITSM incidents across fleet.",
         "timestamp": timestamp_iso,
     }

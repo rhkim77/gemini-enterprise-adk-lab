@@ -76,16 +76,23 @@ DISPATCH & GROUNDING PROTOCOLS:
 
 
 def validate_and_update_temporal_cache(
-    context_or_state: Any, current_date_str: Optional[str] = None
+    callback_context: Any = None, current_date_str: Optional[str] = None
 ) -> Any:
     """Purges cached overrun project state if the calendar day has rolled over.
+
+    IMPORTANT: The first parameter MUST be named `callback_context` because Google ADK 2.x
+    invokes lifecycle callbacks using a keyword argument: `callback(callback_context=ctx)`.
+    Renaming it breaks the ADK runtime with a `TypeError` (`[확인됨 / Verified: adk/agents/base_agent.py`]).
 
     Supports both:
     1. ADK `before_agent_callback(callback_context: CallbackContext)` lifecycle execution
     2. Direct dictionary invocation `validate_and_update_temporal_cache(state_dict, date_str)` for unit testing
     """
-    is_callback_ctx = hasattr(context_or_state, "state") and not isinstance(context_or_state, dict)
-    session_state = context_or_state.state if is_callback_ctx else context_or_state
+    is_callback_ctx = hasattr(callback_context, "state") and not isinstance(callback_context, dict)
+    session_state = callback_context.state if is_callback_ctx else callback_context
+
+    if session_state is None:
+        return None
 
     today_str = current_date_str or datetime.date.today().isoformat()
     cached_date = session_state.get("top_overrun_date")
@@ -97,7 +104,7 @@ def validate_and_update_temporal_cache(
     elif not cached_date:
         session_state["top_overrun_date"] = today_str
 
-    # ADK before_agent_callback expects None so normal execution proceeds
+    # ADK before_agent_callback must return None so normal agent execution proceeds
     return None if is_callback_ctx else session_state
 
 
