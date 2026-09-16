@@ -1,0 +1,34 @@
+# Keep the Cloud Build upload context small and free of local secrets.
+# Without this file `gcloud builds submit` uploads the entire directory —
+# including .env and the multi-hundred-MB .venv — to the staging bucket.
+
+# Secrets / local configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Python virtual environments & caches
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Version control & IDE
+.git/
+.gitignore
+.idea/
+.vscode/
+
+# Documentation (not needed at runtime)
+labs/
+*.md
+!README.md
+
+# Local artifacts
+lab_diagnostics.txt
+*.log

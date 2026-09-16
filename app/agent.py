@@ -13,7 +13,15 @@ from typing import Any, Optional
 
 try:
     from dotenv import load_dotenv
-    load_dotenv(override=True)
+
+    # NOTE: override=False (the default) on purpose — real environment variables
+    # must win over the local .env file. This keeps behaviour identical across
+    # local runs, Cloud Run (--set-env-vars) and Agent Engine (env_vars=...),
+    # and lets participants override a single value ad hoc, e.g.
+    #   USE_ADK_LLM=false .venv/bin/uvicorn app.fast_api_app:app
+    # Every other module in this project already loads dotenv this way; agent.py
+    # previously used override=True, which silently ignored such overrides.
+    load_dotenv()
 except ImportError:
     pass
 

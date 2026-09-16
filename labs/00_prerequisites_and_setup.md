@@ -12,7 +12,7 @@
 1. Google Cloud 환경을 초기화하고 `.env` 파일에 프로젝트 환경변수를 구성합니다.
 2. 필수 Google Cloud API 5종(`aiplatform`, `discoveryengine`, `bigquery`, `run`, `cloudbuild`)을 활성화합니다.
 3. 원클릭 부트스트랩 스크립트(`scripts/setup_environment.sh`)를 실행하여 **BigQuery FinOps 청구 원장(Gold Ledger, 32건)**, **IT 보안 규정 Vector Embedding 테이블(36건)**, 그리고 **실시간 ITSM 인시던트 테이블(32건)** 등 총 100건의 엔터프라이즈 실전 데이터셋을 자동 시딩합니다 (`[확인됨 / Verified: scripts/seed_bigquery.py]`).
-4. Python 가상환경(`.venv`)을 구성하고 `google-adk==2.8.0` 및 `mcp<2.0.0` 버전을 설치하여 MCP 세션 모듈 충돌을 방지합니다.
+4. Python 가상환경(`.venv`)을 구성하고 `requirements.txt`에 고정된 의존성(`google-adk` 2.8 계열, `mcp` 1.x)을 설치하여 MCP 세션 모듈 충돌을 방지합니다. **버전은 `requirements.txt`가 단일 기준(SSOT)이며**, 문서의 다른 곳에 적힌 버전과 다를 경우 항상 `requirements.txt`가 우선합니다.
 
 ---
 
@@ -48,6 +48,22 @@ gcloud auth application-default login
 # 3. 실습을 진행할 대상 Google Cloud Project ID 설정
 gcloud config set project <YOUR_PROJECT_ID>
 ```
+
+### 3) 보조 CLI 도구 확인 (`jq`)
+
+Lab 02·03에서 JSON 응답을 검증할 때 `jq`를 사용합니다. Cloud Shell에는 기본 내장되어 있습니다.
+
+```bash
+jq --version
+```
+
+`command not found`가 발생하면 설치합니다:
+```bash
+sudo apt-get install -y jq   # Debian / Ubuntu
+brew install jq              # macOS
+```
+
+> 💡 `uv`는 **선택 사항**입니다. 설치되어 있으면 부트스트랩 스크립트가 자동으로 사용하고, 없으면 표준 `python3 -m venv`로 폴백하므로 별도 설치가 필요하지 않습니다.
 
 ---
 
@@ -92,6 +108,9 @@ chmod +x scripts/setup_environment.sh
 ./scripts/setup_environment.sh
 ```
 
+> [!TIP]
+> **재실행 안전(Idempotent)**: 이 스크립트는 몇 번을 다시 실행해도 안전합니다. BigQuery 테이블은 매번 덮어쓰기(`WRITE_TRUNCATE`)되므로 **항상 정확히 32 / 36 / 32건(총 100건)** 이 유지되며, 이미 생성된 `.venv`와 활성화된 API는 자동으로 건너뜁니다. 중간에 오류가 났다면 원인을 해결한 뒤 그냥 처음부터 다시 실행하세요.
+
 ### 스크립트 내부 자동 수행 내역
 스크립트는 **Preflight → Step 1~4** 순서로 실행되며, 각 단계는 실패 시 명확한 원인 메시지를 출력하고 중단됩니다.
 
@@ -102,7 +121,7 @@ chmod +x scripts/setup_environment.sh
    - `enterprise_finops_gold.cloud_billing_export` (**32건**): 8개 엔터프라이즈 부서 산하 32개 프로젝트의 월 예산, 당월 지출액, 표준 공식이 적용된 예산 소진율(Burn Rate %), 유휴 GPU 낭비 비용 데이터를 적재합니다 (`PROJ-AI-PROD-01`은 `132.37% CRITICAL_OVERRUN` 상태).
    - `enterprise_finops_gold.it_security_policy_embeddings` (**36건**): **인접 청크 윈도우 스티칭(`N-1 ~ N+1`)** 검증을 위해 12대 보안/운영 규정(`SEC-POL-2026-FW`, `FIN-POL-2026-GPU`, `NET-POL-2026-PSCI`, `DATA-POL-2026-DLP` 등) × 3개 연속 청크 = 총 36개 청크를 적재합니다.
    - `enterprise_finops_gold.itsm_realtime_incidents` (**32건**): 실시간 서비스 데스크 장애 티켓(`INC-2026-88401` ~ `INC-2026-88432`) 및 2PC 락 상태를 적재합니다.
-4. **[Step 4/4] 자동 검증 스위트 실행**: `scripts/validate_agent.py`를 자동 실행하여 3대 도구 게이트웨이, OAuth 2.0 위임, ADK 콜백 계약을 포함한 **8개 테스트**를 즉시 검증합니다. (별도로 수동 실행할 필요 없이 부트스트랩 종료 시점에 `8 PASSED, 0 FAILED` 결과를 확인할 수 있습니다.)
+4. **[Step 4/4] 자동 검증 스위트 실행**: `scripts/validate_agent.py`를 자동 실행하여 3대 도구 게이트웨이, OAuth 2.0 위임, ADK 콜백 계약, 그리고 문서 드리프트까지 포함한 **10개 테스트**를 즉시 검증합니다. (별도로 수동 실행할 필요 없이 부트스트랩 종료 시점에 `10 PASSED, 0 FAILED` 결과를 확인할 수 있습니다.)
 
 ---
 
@@ -130,5 +149,7 @@ bq query --project_id=${PROJECT_ID} --use_legacy_sql=false \
 | 3_itsm_realtime_incidents       |        32 |
 +---------------------------------+-----------+
 ```
+
+> 🔧 막히셨나요? → [트러블슈팅 가이드](TROUBLESHOOTING.md)
 
 > **🎉 Task 1 완료!** 이제 [Lab 01: ADK 2.0 에이전트 및 3대 도구 게이트웨이 구현](01_adk_agent_and_tools.md)으로 이동하세요.

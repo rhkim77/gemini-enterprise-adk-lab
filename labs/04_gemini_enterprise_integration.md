@@ -18,6 +18,25 @@
 
 ---
 
+## 🔄 시작 전: 이전 랩 상태 복원
+
+이 랩은 Lab 03에서 배포한 Cloud Run 서비스 주소(`SERVICE_URL`)를 사용합니다. **새 터미널이거나 Cloud Shell 세션이 재시작되었다면** 아래를 먼저 실행하여 셸 변수를 복원하세요:
+
+```bash
+cd gemini-enterprise-adk-lab
+export PROJECT_ID=$(gcloud config get-value project)
+export REGION="us-central1"
+export SERVICE_NAME="enterprise-hub-agent"
+export SERVICE_URL=$(gcloud run services describe "${SERVICE_NAME}" \
+  --project="${PROJECT_ID}" --region="${REGION}" --format='value(status.url)')
+
+echo "복원된 서비스 URL: ${SERVICE_URL}"
+```
+
+`SERVICE_URL`이 비어 있다면 Lab 03의 Cloud Run 배포가 완료되지 않은 것입니다.
+
+---
+
 ## 🔐 Step 1: Discovery Engine에 OAuth 2.0 Authorization 리소스 등록
 
 사내 임직원이 Gemini Enterprise 채팅창에서 *"내 프로젝트 예산 소진율 확인해 줘"* 또는 *"방화벽 오픈 티켓 생성해 줘"*라고 요청할 때, 백엔드 에이전트는 해당 임직원의 OAuth 2.0 권한 범위(ACL) 내에서 동작해야 합니다.
@@ -134,6 +153,72 @@ Gemini Enterprise 콘솔 개요 페이지에서 **Web App URL**을 클릭하여 
 1. **VPC-SC 활성화 순서 주의**: 반드시 Agent Engine 에이전트를 생성하기 **전에** `aiplatform.googleapis.com` 및 `discoveryengine.googleapis.com` API를 **VPC Service Controls 제한 서비스(Restricted Services)** 목록에 먼저 추가해야 에이전트가 Perimeter 내부로 보호됩니다.
 2. **Southbound 외부 인터넷 통신 시 Squid Proxy VM 필수**: Agent Engine에 VPC-SC 또는 PSC-I가 활성화된 상태에서 외부 공인 인터넷 API를 호출해야 하는 경우, Cloud NAT만으로는 통신이 불가하며 **사용자 VPC 내에 IP Forwarding이 활성화된 Proxy VM(Squid Proxy, TCP 3128)**을 경유해야 합니다.
 3. **Private GKE 클러스터 A2A 직접 등록 제약**: 현재 Gemini Enterprise의 Custom A2A 등록은 공인 라우팅이 가능한 HTTPS 엔드포인트(IAM/OAuth가 적용된 Cloud Run 또는 Apigee/외부 로드밸런서)를 요구하며, 사설 IP만 가진 GKE 클러스터 엔드포인트는 직접 A2A로 등록할 수 없습니다.
+
+---
+
+## ✅ Check my progress: Task 5 완료 검증
+
+아래 **3가지를 모두 만족**해야 Gemini Enterprise 연동이 완료된 것입니다.
+
+> [!IMPORTANT]
+> Step 3에서 답변이 잘 나왔다는 것만으로는 성공이 아닙니다. **Gemini Enterprise의 메인 오케스트레이터는 우리 에이전트를 호출하지 않고도 자체적으로 그럴듯한 답변을 생성할 수 있습니다.** 따라서 "에이전트가 실제로 호출되었는가"를 서버 측 로그로 직접 확인해야 합니다.
+
+### 1) 에이전트가 GE에 정상 등록되었는가
+
+```bash
+curl -s "${SERVICE_URL}/.well-known/agent-card.json" | jq '{name, url, defaultInputModes, auth: .authentication.schemes}'
+```
+
+**기대 출력:**
+```json
+{
+  "name": "enterprise_hub_agent",
+  "url": "https://enterprise-hub-agent-xxxx-uc.a.run.app/a2a/enterprise_hub_agent",
+  "defaultInputModes": ["text/plain"],
+  "auth": ["Bearer", "OAuth2"]
+}
+```
+`url`이 공인 HTTPS 주소여야 하며, `localhost`나 사설 IP이면 GE가 도달할 수 없습니다.
+
+### 2) GE가 실제로 우리 에이전트를 호출했는가 ⭐ (가장 중요)
+
+Step 3의 3가지 시나리오를 질의한 **직후** 아래를 실행합니다:
+
+```bash
+gcloud logging read \
+  'resource.type="cloud_run_revision" AND resource.labels.service_name="enterprise-hub-agent" AND httpRequest.requestUrl:"/a2a/"' \
+  --project="${PROJECT_ID}" --limit=5 --freshness=10m \
+  --format="table(timestamp, httpRequest.status, httpRequest.requestUrl)"
+```
+
+**기대 출력**: 질의한 시각에 `200` 응답이 최소 3건 기록되어 있어야 합니다.
+
+> [!WARNING]
+> **로그가 비어 있다면 GE 오케스트레이터가 우리 에이전트로 라우팅하지 않은 것입니다.** Step 2의 **Agent Description** 프롬프트를 다시 확인하세요. 오케스트레이터는 오직 이 설명문만 보고 라우팅을 결정하므로 `BigQuery`, `FinOps`, `burn rate`, `ITSM`, `firewall SOP` 같은 도메인 키워드가 반드시 포함되어야 합니다.
+
+### 3) OAuth 2.0 신원 위임이 실제로 전달되었는가
+
+```bash
+gcloud logging read \
+  'resource.type="cloud_run_revision" AND textPayload:"OAuth"' \
+  --project="${PROJECT_ID}" --limit=3 --freshness=10m \
+  --format="value(textPayload)"
+```
+
+**기대 출력**: `developer@cymbal.enterprise` 같은 목(mock) 계정이 아니라 **본인이 Gemini Enterprise에 로그인한 실제 계정 이메일**이 기록되어 있어야 합니다. 목 계정이 보인다면 Step 1의 `serverSideOauth2` Authorization 리소스가 에이전트에 바인딩되지 않은 것입니다.
+
+### 📋 최종 완료 체크리스트
+
+| | 확인 항목 | 판정 기준 |
+|---|---|---|
+| ☐ | Agent Card 공개 | `defaultInputModes: ["text/plain"]` + 공인 HTTPS `url` |
+| ☐ | GE 라우팅 성공 | Cloud Run `/a2a/` 로그에 `200` 3건 이상 |
+| ☐ | OAuth 위임 성공 | 로그에 **실제 로그인 계정** 이메일 기록 |
+| ☐ | 시나리오 1 (병렬) | `132.37%` + `$14,200.00` + `INC-2026-88412` |
+| ☐ | 시나리오 2 (RAG) | 청크 3개 결합 + `SEC-POL-2026-FW-v2.pdf` 링크 |
+| ☐ | 시나리오 3 (거절) | 인증된 거절 문장만 출력 |
+
+> 🔧 막히셨나요? → [트러블슈팅 가이드](TROUBLESHOOTING.md)
 
 ---
 

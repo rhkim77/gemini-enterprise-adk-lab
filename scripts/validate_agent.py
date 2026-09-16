@@ -3,11 +3,14 @@
 # Cymbal Enterprise AI Hub: Automated Verification Suite
 # Verifies 100-Record Datasets (32 FinOps + 36 Policy Chunks + 32 ITSM Incidents),
 # all 3 Decoupled Tool Gateways, Bilingual Cosine Similarity RAG, Refusal Guardrail,
-# OAuth 2.0 Identity Delegation, ADK before_agent_callback & A2A Card Schema
+# OAuth 2.0 Identity Delegation, ADK callback contract, A2A Card Schema & documentation drift
 # ============================================================================
 import os
+import re
 import sys
 import time
+from pathlib import Path
+from typing import List
 
 # Add project root to Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -36,7 +39,7 @@ def run_validation_suite():
     failed = 0
 
     # Test 1: Dataset Scale Verification (>= 30 records per gateway)
-    print("\n[TEST 1/8] Dataset Scale Audit (>= 30 Records per Gateway)...")
+    print("\n[TEST 1/10] Dataset Scale Audit (>= 30 Records per Gateway)...")
     f_count = len(_FINOPS_GOLD_LEDGER)
     p_count = len(_ALL_POLICY_CHUNKS)
     p_policies = len(_POLICY_CHUNKS_DB)
@@ -54,7 +57,7 @@ def run_validation_suite():
         failed += 1
 
     # Test 2: Gateway 1 - FinOps Analytics (Original + Expanded Projects & Department Aggregation)
-    print("\n[TEST 2/8] Gateway 1: FinOps Analytics (Project & Department Queries across 32 Projects)...")
+    print("\n[TEST 2/10] Gateway 1: FinOps Analytics (Project & Department Queries across 32 Projects)...")
     t0 = time.time()
     res_p1 = finops_bq_tool("PROJ-AI-PROD-01")
     res_p4 = finops_bq_tool("PROJ-LLM-SERVE-04")
@@ -72,7 +75,7 @@ def run_validation_suite():
         failed += 1
 
     # Test 3: Gateway 2 - IT Security Policy Vector RAG (Window Stitching SEC-POL-2026-FW in EN & KR)
-    print("\n[TEST 3/8] Gateway 2: IT Policy RAG Window Stitching (Bilingual KR/EN & Cosine Sim >= 0.70)...")
+    print("\n[TEST 3/10] Gateway 2: IT Policy RAG Window Stitching (Bilingual KR/EN & Cosine Sim >= 0.70)...")
     t0 = time.time()
     res_fw_en = it_policy_rag_tool("SEC-POL-2026-FW firewall port open procedure")
     res_fw_kr = it_policy_rag_tool("SEC-POL-2026-FW 보안 규정에 따른 방화벽 포트 오픈 절차 알려줘")
@@ -89,7 +92,7 @@ def run_validation_suite():
         failed += 1
 
     # Test 4: Gateway 2 - Expanded Policy Corpus Verification (NET-POL-2026-PSCI & DATA-POL-2026-DLP)
-    print("\n[TEST 4/8] Gateway 2: Expanded Policy Corpus Query (NET-POL-2026-PSCI & DLP Policy)...")
+    print("\n[TEST 4/10] Gateway 2: Expanded Policy Corpus Query (NET-POL-2026-PSCI & DLP Policy)...")
     t0 = time.time()
     res_psci = it_policy_rag_tool("How do we configure Private Service Connect Interface psc-i routing?")
     res_dlp = it_policy_rag_tool("개인정보 마스킹 및 DATA-POL-2026-DLP Model Armor 정책")
@@ -102,7 +105,7 @@ def run_validation_suite():
         failed += 1
 
     # Test 5: Gateway 2 - Certified Out-of-Domain Refusal Guardrail (Bilingual EN & KR)
-    print("\n[TEST 5/8] Gateway 2: Out-of-Domain Refusal Gate (Espresso Machine & Personal Cloud Photos)...")
+    print("\n[TEST 5/10] Gateway 2: Out-of-Domain Refusal Gate (Espresso Machine & Personal Cloud Photos)...")
     t0 = time.time()
     res_refusal_en = it_policy_rag_tool("How do I descale the office espresso coffee machine?")
     res_refusal_kr = it_policy_rag_tool("사무실 에스프레소 커피머신 석회 제거 청소 방법 알려줘")
@@ -116,7 +119,7 @@ def run_validation_suite():
         failed += 1
 
     # Test 6: Gateway 3 - Expanded ITSM Incident Lookup & P1 Critical Fleet Filter
-    print("\n[TEST 6/8] Gateway 3: Expanded ITSM Incident Lookup (INC-2026-88415 & P1_CRITICAL Filter)...")
+    print("\n[TEST 6/10] Gateway 3: Expanded ITSM Incident Lookup (INC-2026-88415 & P1_CRITICAL Filter)...")
     t0 = time.time()
     res_inc = it_servicedesk_tool("INC-2026-88415")
     res_p1_list = it_servicedesk_tool("P1_CRITICAL")
@@ -134,7 +137,7 @@ def run_validation_suite():
         failed += 1
 
     # Test 7: Gateway 3 - Dual-Mode IT Service Desk 2PC HITL Ticket Creation & OAuth 2.0 Delegation Audit
-    print("\n[TEST 7/8] Gateway 3: Dual-Mode 2PC HITL Ticket Creation & OAuth 2.0 Delegation Audit...")
+    print("\n[TEST 7/10] Gateway 3: Dual-Mode 2PC HITL Ticket Creation & OAuth 2.0 Delegation Audit...")
     t0 = time.time()
     set_current_oauth_context(
         token="mock-oauth2-token-cymbal-2026",
@@ -162,7 +165,7 @@ def run_validation_suite():
         failed += 1
 
     # Test 8: Coordinator Governance, ADK before_agent_callback Contract & A2A Agent Card Schema
-    print("\n[TEST 8/8] Coordinator Governance, ADK Callback Contract & A2A Agent Card Schema...")
+    print("\n[TEST 8/10] Coordinator Governance, ADK Callback Contract & A2A Agent Card Schema...")
 
     # 8-1. Direct dict invocation (unit-test style)
     mock_state = {"top_overrun_project": "PROJ-OLD-99", "top_overrun_date": "2026-01-01"}
@@ -209,8 +212,67 @@ def run_validation_suite():
         print(f"  [FAIL] Governance check failed: callback_contract={callback_contract_ok} ({callback_error}), state={updated_state}")
         failed += 1
 
+    # Test 9: Documentation drift — version pins must agree across the repo.
+    # WHY: labs/03 deploys to Agent Engine with its own `requirements` list. If it
+    # drifts from requirements.txt, participants deploy a different SDK combination
+    # than the one verified locally ("works locally, fails on Agent Engine").
+    print("\n[TEST 9/10] Documentation Drift: Dependency Pin Consistency (requirements.txt ↔ labs/03)...")
+    repo_root = Path(__file__).resolve().parent.parent
+    pin_errors: List[str] = []
+    try:
+        req_text = (repo_root / "requirements.txt").read_text(encoding="utf-8")
+        lab03_text = (repo_root / "labs" / "03_cloud_deployment.md").read_text(encoding="utf-8")
+        for pkg in ("google-adk", "mcp", "google-genai"):
+            match = re.search(rf"^({re.escape(pkg)}[^\s#]*)$", req_text, re.MULTILINE)
+            if not match:
+                pin_errors.append(f"{pkg} is not pinned in requirements.txt")
+                continue
+            if match.group(1) not in lab03_text:
+                pin_errors.append(f"labs/03 does not pin '{match.group(1)}' as requirements.txt does")
+    except OSError as exc:
+        pin_errors.append(f"could not read source files: {exc}")
+
+    if not pin_errors:
+        print("  [PASS] Completed in 0.00s — Dependency pins consistent across requirements.txt and labs/03.")
+        passed += 1
+    else:
+        print(f"  [FAIL] Documentation drift detected: {'; '.join(pin_errors)}")
+        failed += 1
+
+    # Test 10: Every lab must be self-recoverable — a completion checkpoint and a
+    # troubleshooting escape hatch. A lab without either strands the participant.
+    print("\n[TEST 10/10] Lab Structure Integrity: Completion Checkpoints & Troubleshooting Links...")
+    structure_errors: List[str] = []
+    labs_dir = repo_root / "labs"
+    expected_labs = [
+        "00_prerequisites_and_setup.md",
+        "01_adk_agent_and_tools.md",
+        "02_dual_contract_and_studio.md",
+        "03_cloud_deployment.md",
+        "04_gemini_enterprise_integration.md",
+    ]
+    if not (labs_dir / "TROUBLESHOOTING.md").is_file():
+        structure_errors.append("labs/TROUBLESHOOTING.md is missing")
+    for lab_name in expected_labs:
+        lab_path = labs_dir / lab_name
+        if not lab_path.is_file():
+            structure_errors.append(f"{lab_name} is missing")
+            continue
+        text = lab_path.read_text(encoding="utf-8")
+        if "Check my progress" not in text:
+            structure_errors.append(f"{lab_name} has no 'Check my progress' checkpoint")
+        if "TROUBLESHOOTING.md" not in text:
+            structure_errors.append(f"{lab_name} does not link the troubleshooting guide")
+
+    if not structure_errors:
+        print(f"  [PASS] Completed in 0.00s — All {len(expected_labs)} labs expose a checkpoint & troubleshooting link.")
+        passed += 1
+    else:
+        print(f"  [FAIL] Lab structure gaps: {'; '.join(structure_errors)}")
+        failed += 1
+
     print("\n" + "=" * 84)
-    print(f"📊 VALIDATION SUMMARY: {passed} PASSED, {failed} FAILED (TOTAL: 8 TESTS | 100 DATA RECORDS)")
+    print(f"📊 VALIDATION SUMMARY: {passed} PASSED, {failed} FAILED (TOTAL: 10 TESTS | 100 DATA RECORDS)")
     print("=" * 84)
 
     if failed > 0:

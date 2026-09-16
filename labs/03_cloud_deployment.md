@@ -20,7 +20,11 @@
 Google Cloud Run은 트래픽에 따른 자동 확장과 기본 HTTPS 인증서를 제공합니다. 본 컨테이너는 A2A 엔드포인트(`/.well-known/agent-card.json`)와 웹 스튜디오 UI(`/studio`)를 함께 내장하고 있어, Gemini Enterprise 연동과 시각적 디버깅을 동시에 수행하기에 가장 적합합니다 (`[확인됨 / Verified: labs/04 Reference Pattern]`).
 
 ### Step 1: 배포 환경변수 설정
+
+> 🔄 **새 터미널에서 시작하셨나요?** 이전 랩에서 `export`한 셸 변수는 사라집니다. 아래를 반드시 먼저 실행하세요. (`cd gemini-enterprise-adk-lab`도 잊지 마세요.)
+
 ```bash
+cd gemini-enterprise-adk-lab
 export PROJECT_ID=$(gcloud config get-value project)
 export REGION="us-central1"
 export SERVICE_NAME="enterprise-hub-agent"
@@ -33,6 +37,10 @@ gcloud builds submit --project="${PROJECT_ID}" \
 ```
 
 ### Step 3: Google Cloud Run 서비스 배포
+
+> [!IMPORTANT]
+> `--set-env-vars`에 **`GOOGLE_GENAI_USE_VERTEXAI=TRUE`가 반드시 포함되어야 합니다.** 이 값이 없으면 컨테이너 안의 `google-genai` SDK가 Vertex AI가 아닌 Gemini Developer API 모드로 부팅되어, **로컬에서는 멀쩡히 동작하던 에이전트가 Cloud Run에서만 조용히 폴백 라우터로 downgrade** 됩니다. 로컬 `.env`는 컨테이너 이미지에 포함되지 않으므로(`.gitignore`/`.dockerignore` 대상) 배포 시 명시적으로 주입해야 합니다.
+
 ```bash
 gcloud run deploy "${SERVICE_NAME}" \
   --project="${PROJECT_ID}" \
@@ -40,8 +48,17 @@ gcloud run deploy "${SERVICE_NAME}" \
   --platform managed \
   --region "${REGION}" \
   --allow-unauthenticated \
-  --set-env-vars "PROJECT_ID=${PROJECT_ID},GOOGLE_CLOUD_PROJECT=${PROJECT_ID},ITSM_MODE=MOCK,AGENT_MODEL=gemini-2.5-flash"
+  --set-env-vars "PROJECT_ID=${PROJECT_ID},GOOGLE_CLOUD_PROJECT=${PROJECT_ID},GOOGLE_GENAI_USE_VERTEXAI=TRUE,GOOGLE_CLOUD_LOCATION=${REGION},USE_ADK_LLM=true,ITSM_MODE=MOCK,AGENT_MODEL=gemini-2.5-flash"
 ```
+
+> [!NOTE]
+> Cloud Run 서비스 계정에는 Vertex AI 호출 권한(`roles/aiplatform.user`)과 BigQuery 조회 권한(`roles/bigquery.dataViewer`, `roles/bigquery.jobUser`)이 필요합니다. 기본 Compute 서비스 계정을 사용하는 실습 환경에서는 대개 이미 부여되어 있으나, 배포 후 `degraded` 상태가 나오면 아래로 확인하세요:
+> ```bash
+> gcloud projects get-iam-policy "${PROJECT_ID}" \
+>   --flatten="bindings[].members" \
+>   --filter="bindings.members:compute@developer.gserviceaccount.com" \
+>   --format="value(bindings.role)"
+> ```
 
 ### Step 4: 배포된 HTTPS 서비스 URL 확보 및 `APP_URL` 업데이트
 ```bash
@@ -85,12 +102,25 @@ adk_app = AdkApp(agent=root_agent, enable_tracing=True)
 
 remote_agent = agent_engines.create(
     agent_engine=adk_app,
+    # IMPORTANT: keep this list in sync with requirements.txt.
+    # Deploying a different SDK combination than the one verified locally is the
+    # single most common cause of "works locally, fails on Agent Engine".
+    # ADK 2.x specifically is required — 1.x uses a different lifecycle-callback
+    # contract and will break `before_agent_callback` wiring silently.
     requirements=[
-        "google-adk==2.8.0",
-        "mcp<2.0.0",
+        "google-adk>=2.8.0,<3.0.0",
+        "mcp>=1.30.0,<2.0.0",
         "google-cloud-aiplatform[agent_engines,adk]>=1.82.0",
-        "google-genai>=1.5.0",
+        "google-genai>=2.23.0,<3.0.0",
     ],
+    env_vars={
+        # Agent Engine runs with its own service identity; the Vertex AI backend
+        # flag must be injected here just as it is for Cloud Run.
+        "GOOGLE_GENAI_USE_VERTEXAI": "TRUE",
+        "GOOGLE_CLOUD_LOCATION": LOCATION,
+        "USE_ADK_LLM": "true",
+        "ITSM_MODE": "MOCK",
+    },
     display_name="enterprise-hub-adk-agent",
     description="Enterprise Cloud FinOps & IT Hub Coordinator Agent",
 )
@@ -121,5 +151,32 @@ curl -s "${SERVICE_URL}/.well-known/agent-card.json" | jq .
   ]
 }
 ```
+
+### 🔬 배포본 딥 헬스체크 (필수)
+
+Agent Card가 응답한다는 것은 컨테이너가 떴다는 뜻일 뿐, **배포본 안에서 ADK가 실제로 동작하는지는 알 수 없습니다.** 반드시 딥 프로브로 확인하세요:
+
+```bash
+curl -s "${SERVICE_URL}/healthz?deep=true" | jq '{status, execution_engine, adk_runner_active}'
+```
+
+**정상 출력:**
+```json
+{
+  "status": "healthy",
+  "execution_engine": "ADK_2.0_RUNNER (gemini-2.5-flash)",
+  "adk_runner_active": true
+}
+```
+
+> [!WARNING]
+> `"status": "degraded"`가 나온다면 **Cloud Run 환경변수가 누락**된 것입니다. 대부분 Step 3의 `--set-env-vars`에서 `GOOGLE_GENAI_USE_VERTEXAI=TRUE`가 빠진 경우입니다. 아래로 즉시 교정할 수 있습니다:
+> ```bash
+> gcloud run services update "${SERVICE_NAME}" \
+>   --project="${PROJECT_ID}" --region="${REGION}" \
+>   --update-env-vars "GOOGLE_GENAI_USE_VERTEXAI=TRUE,GOOGLE_CLOUD_LOCATION=${REGION},USE_ADK_LLM=true"
+> ```
+
+> 🔧 막히셨나요? → [트러블슈팅 가이드](TROUBLESHOOTING.md)
 
 > **🎉 Task 4 완료!** 이제 본 워크샵의 핵심 단계인 [Lab 04: Gemini Enterprise 에이전트 등록 및 OAuth 2.0 연동](04_gemini_enterprise_integration.md)으로 이동하세요.

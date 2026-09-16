@@ -68,7 +68,7 @@ cat app/agent.py
 
 ## ✅ Check my progress: Task 2 완료 검증
 
-터미널 출력 결과에서 아래 **8 PASSED, 0 FAILED (TOTAL: 8 TESTS | 100 DATA RECORDS)** 요약이 나타나는지 확인합니다:
+터미널 출력 결과에서 아래 **10 PASSED, 0 FAILED (TOTAL: 10 TESTS | 100 DATA RECORDS)** 요약이 나타나는지 확인합니다:
 
 ```text
 ====================================================================================
@@ -76,38 +76,52 @@ cat app/agent.py
 Project ID: local-lab-project | ITSM Mode: MOCK
 ====================================================================================
 
-[TEST 1/8] Dataset Scale Audit (>= 30 Records per Gateway)...
+[TEST 1/10] Dataset Scale Audit (>= 30 Records per Gateway)...
   • Gateway 1 (FinOps Projects):      32 records (Target >= 30)
   • Gateway 2 (Policy RAG Chunks):    36 chunks across 12 policies (Target >= 30)
   • Gateway 3 (ITSM Incidents):       32 records (Target >= 30)
   • Total Enterprise Dataset Records: 100 records
   [PASS] All 3 gateways meet the 30+ realistic enterprise record threshold.
 
-[TEST 2/8] Gateway 1: FinOps Analytics (Project & Department Queries across 32 Projects)...
-  [PASS] Completed in 0.00s — Multi-project & department SQL aggregations verified.
+[TEST 2/10] Gateway 1: FinOps Analytics (Project & Department Queries across 32 Projects)...
+  [PASS] Completed in 3.11s — Multi-project & department SQL aggregations verified.
 
-[TEST 3/8] Gateway 2: IT Policy RAG Window Stitching (Bilingual KR/EN & Cosine Sim >= 0.70)...
-  [PASS] Completed in 0.00s — Adjacent chunks N-1~N+1 stitched & Bilingual Cosine Similarity verified.
+[TEST 3/10] Gateway 2: IT Policy RAG Window Stitching (Bilingual KR/EN & Cosine Sim >= 0.70)...
+  [PASS] Completed in 3.58s — Adjacent chunks N-1~N+1 stitched & Bilingual Cosine Similarity verified.
 
-[TEST 4/8] Gateway 2: Expanded Policy Corpus Query (NET-POL-2026-PSCI & DLP Policy)...
-  [PASS] Completed in 0.00s — Expanded policies retrieved with 3-chunk window stitching.
+[TEST 4/10] Gateway 2: Expanded Policy Corpus Query (NET-POL-2026-PSCI & DLP Policy)...
+  [PASS] Completed in 2.56s — Expanded policies retrieved with 3-chunk window stitching.
 
-[TEST 5/8] Gateway 2: Out-of-Domain Refusal Gate (Espresso Machine & Personal Cloud Photos)...
+[TEST 5/10] Gateway 2: Out-of-Domain Refusal Gate (Espresso Machine & Personal Cloud Photos)...
   [PASS] Completed in 0.00s — Certified refusal guardrail enforced strictly (EN & KR).
 
-[TEST 6/8] Gateway 3: Expanded ITSM Incident Lookup (INC-2026-88415 & P1_CRITICAL Filter)...
-  [PASS] Completed in 0.00s — Specific ticket lookup & P1 Critical filter (9 P1 incidents) verified.
+[TEST 6/10] Gateway 3: Expanded ITSM Incident Lookup (INC-2026-88415 & P1_CRITICAL Filter)...
+  [PASS] Completed in 2.70s — Specific ticket lookup & P1 Critical filter (9 P1 incidents) verified.
 
-[TEST 7/8] Gateway 3: Dual-Mode 2PC HITL Ticket Creation & OAuth 2.0 Delegation Audit...
+[TEST 7/10] Gateway 3: Dual-Mode 2PC HITL Ticket Creation & OAuth 2.0 Delegation Audit...
   [PASS] Completed in 0.00s — 2PC lock, HITL flag & OAuth 2.0 identity (architect@cymbal.enterprise) verified.
 
-[TEST 8/8] Coordinator Governance, ADK Callback Contract & A2A Agent Card Schema...
+[TEST 8/10] Coordinator Governance, ADK Callback Contract & A2A Agent Card Schema...
   [PASS] Completed in 0.00s — ADK callback contract `callback(callback_context=...)` honored, cache purged & A2A Card schema verified.
 
+[TEST 9/10] Documentation Drift: Dependency Pin Consistency (requirements.txt ↔ labs/03)...
+  [PASS] Completed in 0.00s — Dependency pins consistent across requirements.txt and labs/03.
+
+[TEST 10/10] Lab Structure Integrity: Completion Checkpoints & Troubleshooting Links...
+  [PASS] Completed in 0.00s — All 5 labs expose a checkpoint & troubleshooting link.
+
 ====================================================================================
-📊 VALIDATION SUMMARY: 8 PASSED, 0 FAILED (TOTAL: 8 TESTS | 100 DATA RECORDS)
+📊 VALIDATION SUMMARY: 10 PASSED, 0 FAILED (TOTAL: 10 TESTS | 100 DATA RECORDS)
 ====================================================================================
 🎉 All 100 enterprise dataset records, 3 gateways, OAuth delegation & ADK 2.0 runner verified!
 ```
+
+> [!TIP]
+> **Test 2·3·4·6의 소요 시간이 몇 초씩 걸리는 것이 정상입니다.** 이는 실제 BigQuery 왕복이 발생했다는 증거이기 때문입니다. 만약 이 테스트들이 `0.00s`로 통과한다면, 라이브 쿼리에 실패해 **로컬 JSON 미러로 폴백**한 상태입니다 (통과했지만 정상이 아님). 이 경우 [트러블슈팅 §3-3](TROUBLESHOOTING.md)을 참고하세요.
+
+> [!NOTE]
+> **Test 9·10은 코드가 아니라 문서를 검사합니다.** 의존성 버전이 `requirements.txt`와 `labs/03` 사이에서 어긋나거나, 특정 랩에 완료 검증 체크포인트나 트러블슈팅 링크가 빠지면 실패합니다. 실습 자료가 시간이 지나며 코드와 어긋나는 것(documentation drift)을 **참가자가 아니라 작성자가 먼저 발견**하도록 하는 장치입니다.
+
+> 🔧 막히셨나요? → [트러블슈팅 가이드](TROUBLESHOOTING.md)
 
 > **🎉 Task 2 완료!** 이제 [Lab 02: Dual-Contract 서빙 & 로컬 스튜디오 테스트](02_dual_contract_and_studio.md)로 이동하세요.

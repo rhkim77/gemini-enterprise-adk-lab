@@ -42,12 +42,16 @@ logger = logging.getLogger(__name__)
 
 # Initialize genuine Google ADK 2.0 InMemoryRunner
 _ADK_RUNNER = None
+# Holds the most recent reason the ADK path bailed out. Surfaced by /healthz?deep=true
+# so participants can see WHY the agent silently downgraded instead of guessing.
+_LAST_ADK_ERROR: Optional[str] = None
 try:
     from google.adk.runners import InMemoryRunner
     from google.genai import types
 
     _ADK_RUNNER = InMemoryRunner(agent=root_agent, app_name="enterprise_hub_agent")
 except Exception as exc:
+    _LAST_ADK_ERROR = f"InMemoryRunner init failed: {exc}"
     logger.warning("ADK InMemoryRunner initialization warning: %s", exc)
 
 app = FastAPI(
@@ -219,9 +223,11 @@ async def execute_agent_query(
     active_oauth = get_current_oauth_context()
 
     # 1. Primary Path: Genuine Google ADK 2.0 InMemoryRunner execution
+    global _LAST_ADK_ERROR
     try:
         adk_result = await _try_adk_runner_execution(message, session_id, active_oauth)
         if adk_result:
+            _LAST_ADK_ERROR = None
             return {
                 "session_id": session_id,
                 "message": message,
@@ -233,7 +239,11 @@ async def execute_agent_query(
                 "latency_ms": int((time.time() - start_time) * 1000),
             }
     except Exception as exc:
-        logger.info("ADK LLM live call skipped/fallback to Deterministic Hybrid Router: %s", exc)
+        # Record the reason so /healthz?deep=true can report it. Logged at WARNING
+        # (not INFO) because a silent downgrade is exactly the failure mode that
+        # made two P0 defects invisible during earlier lab runs.
+        _LAST_ADK_ERROR = f"{type(exc).__name__}: {exc}"
+        logger.warning("ADK live call failed, falling back to Deterministic Hybrid Router: %s", exc)
 
     # 2. Resilient Deterministic Hybrid Router (Offline / Zero-Quota Lab Guarantee)
     msg_lower = message.lower()
@@ -384,13 +394,54 @@ async def root_redirect():
 
 
 @app.get("/healthz")
-async def health_check():
-    return {
+async def health_check(deep: bool = False) -> Dict[str, Any]:
+    """Liveness probe for the Dual-Contract serving layer.
+
+    Pass ``?deep=true`` to actually exercise one full agent turn.
+
+    WHY THIS MATTERS: the shallow check can only report whether the Runner
+    *object* was constructed. It cannot detect runtime failures — a broken
+    ``before_agent_callback`` signature, a missing ``GOOGLE_GENAI_USE_VERTEXAI``
+    flag, expired ADC — that make every request silently downgrade to the
+    deterministic fallback router. A shallow "healthy" is therefore NOT
+    evidence that the ADK path works. Always use the deep probe to verify.
+    """
+    payload: Dict[str, Any] = {
         "status": "healthy",
         "agent": "enterprise_hub_agent",
-        "adk_runner_active": _ADK_RUNNER is not None,
+        "model": MODEL,
+        "adk_runner_constructed": _ADK_RUNNER is not None,
         "contracts": ["A2A", "ReasoningEngine"],
     }
+
+    if not deep:
+        payload["adk_runner_active"] = None
+        payload["hint"] = (
+            "Shallow probe only reports object construction. "
+            "Call /healthz?deep=true to verify the ADK path end-to-end."
+        )
+        return payload
+
+    probe = await execute_agent_query(
+        "healthcheck probe: reply with OK",
+        session_id="healthz-deep-probe",
+        oauth_context=None,
+    )
+    engine = str(probe.get("execution_engine", "UNKNOWN"))
+    payload["execution_engine"] = engine
+    payload["probe_latency_ms"] = probe.get("latency_ms")
+    payload["adk_runner_active"] = engine.startswith("ADK_2.0_RUNNER")
+
+    if not payload["adk_runner_active"]:
+        payload["status"] = "degraded"
+        payload["last_adk_error"] = _LAST_ADK_ERROR or "ADK path was skipped by a guard condition."
+        payload["remediation"] = [
+            "Confirm .env contains GOOGLE_GENAI_USE_VERTEXAI=\"TRUE\" and GOOGLE_CLOUD_LOCATION.",
+            "Confirm .env contains USE_ADK_LLM=\"true\" and a valid PROJECT_ID.",
+            "Re-authenticate Application Default Credentials: gcloud auth application-default login",
+            "Re-run ./scripts/setup_environment.sh (it auto-migrates legacy .env files).",
+        ]
+    return payload
 
 
 @app.post("/api/chat")

@@ -40,6 +40,20 @@ fi
 GCLOUD_BIN=$(command -v gcloud)
 echo "✅ Google Cloud SDK detected: $(${GCLOUD_BIN} --version | head -n 1) (${GCLOUD_BIN})"
 
+# Verify 'jq' now rather than letting Lab 02 be the first place it fails.
+# Cloud Shell ships with jq; fresh local VMs and corporate laptops often do not.
+if ! command -v jq &> /dev/null; then
+  echo "⚠️  [WARNING] 'jq' was not found. Labs 02 and 03 use it to inspect JSON responses."
+  if command -v apt-get &> /dev/null; then
+    echo "👉 Install it with:  sudo apt-get install -y jq"
+  elif command -v brew &> /dev/null; then
+    echo "👉 Install it with:  brew install jq"
+  fi
+  echo "   (Bootstrap will continue — jq is only required from Lab 02 onward.)"
+else
+  echo "✅ jq detected: $(jq --version)"
+fi
+
 # Ensure non-interactive execution for gcloud prompts
 export CLOUDSDK_CORE_DISABLE_PROMPTS=1
 

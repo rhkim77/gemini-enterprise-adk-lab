@@ -1,13 +1,13 @@
-# Cymbal Enterprise AI Hub: Building & Registering an Enterprise ADK 2.0 Agent in Gemini Enterprise (v2.2.0 — Rev. 2026.09.16)
+# Cymbal Enterprise AI Hub: Building & Registering an Enterprise ADK 2.0 Agent in Gemini Enterprise (v2.3.0 — Rev. 2026.09.16)
 
 > 🇰🇷 **[한국어 기본 문서 보기 (README.md)](README.md)** | 🇺🇸 **English Version (Current)**
 
 ![Lab Banner](https://img.shields.io/badge/Google_Cloud-Enterprise_AI_Hub-4285F4?style=for-the-badge&logo=google-cloud)
 ![ADK Version](https://img.shields.io/badge/Google_ADK-2.8.0-34A853?style=for-the-badge)
 ![Gemini Enterprise](https://img.shields.io/badge/Gemini_Enterprise-A2A_%26_Agent_Engine-FBBC04?style=for-the-badge)
-![Revision](https://img.shields.io/badge/Revision-v2.2.0_(2026.09.16)-8E24AA?style=for-the-badge)
+![Revision](https://img.shields.io/badge/Revision-v2.3.0_(2026.09.16)-8E24AA?style=for-the-badge)
 
-* **Revision**: `v2.2.0` (`Rev. 2026-09-16` — ADK `before_agent_callback` keyword-contract fix, enforced Vertex AI backend, live BigQuery across all 3 gateways)
+* **Revision**: `v2.3.0` (`Rev. 2026-09-16` — Lab consistency hardening: deep health probe (`/healthz?deep=true`), Lab 04 completion checkpoint, troubleshooting guide, and 2 documentation-drift regression tests)
 * **Duration**: 2 Hours (120 Minutes)
 * **Level**: Intermediate / Advanced
 * **Lab Format**: Hands-on Cloud Skills Lab (Enterprise Production Architecture)
@@ -131,9 +131,11 @@ Open `http://localhost:8000/studio` in your browser to test the agent interactiv
 
 ## 📚 5. Step-by-Step Implementation Guide (5 Modules)
 
+> 🔧 **Stuck during the lab?** See the **[Troubleshooting Guide](labs/TROUBLESHOOTING.md)** for symptom-based diagnosis. Most issues are pinpointed by a single deep health probe: `curl -s "http://localhost:8000/healthz?deep=true" | jq .`
+
 | Task | Lab Guide Link | Core Objectives & Deliverables | Duration |
 | :--- | :--- | :--- | :--- |
-| **Task 1 (Lab 00)** | [**00: Environment Setup & One-Click Bootstrap**](labs/00_prerequisites_and_setup.md) | Configure `.env`, enable GCP APIs, run `setup_environment.sh` to create BigQuery FinOps & IT Policy tables, and pin `google-adk==2.8.0` & `mcp==1.29.1`. | 15 mins |
+| **Task 1 (Lab 00)** | [**00: Environment Setup & One-Click Bootstrap**](labs/00_prerequisites_and_setup.md) | Configure `.env`, enable GCP APIs, run `setup_environment.sh` to create BigQuery FinOps & IT Policy tables, and install pinned dependencies — [`requirements.txt`](requirements.txt) is the single source of truth for versions. | 15 mins |
 | **Task 2 (Lab 01)** | [**01: ADK 2.0 Agent & 3 Decoupled Tool Gateways**](labs/01_adk_agent_and_tools.md) | Implement `enterprise_hub_agent` (`app/agent.py`), build the 3 specialized gateways (`finops_bq_tool`, `it_policy_rag_tool` with `N-1~N+1` window stitching & refusal guardrail, `it_servicedesk_tool`), and pass `validate_agent.py`. | 30 mins |
 | **Task 3 (Lab 02)** | [**02: Dual-Contract Serving & Local Studio Test**](labs/02_dual_contract_and_studio.md) | Mount both A2A (`/.well-known/agent-card.json`) and Reasoning Engine (`/api/reasoning_engine`) contracts on FastAPI, test 4 scenarios in Web Studio (`/studio`), and inspect BigQuery telemetry logs. | 25 mins |
 | **Task 4 (Lab 03)** | [**03: Cloud Deployment (Cloud Run & Agent Engine)**](labs/03_cloud_deployment.md) | Deploy the Dual-Contract container to **Google Cloud Run** (`gcloud run deploy`) and/or **Vertex AI Agent Engine** (`AdkApp`), verifying live endpoints via `curl`. | 20 mins |

@@ -40,12 +40,23 @@ cat app/app_utils/a2a.py
 
 ## 🚀 Step 2: Dual-Contract FastAPI 서버 구동
 
+> 🔄 **새 터미널에서 시작하셨나요?** 이전 랩의 셸 변수는 사라집니다. 아래를 먼저 실행하세요:
+> ```bash
+> cd gemini-enterprise-adk-lab
+> export PROJECT_ID=$(gcloud config get-value project)
+> ```
+
 `.venv` 가상환경의 `uvicorn`을 사용하여 포트 `8000`번으로 서버를 실행합니다:
 
 ```bash
 .venv/bin/uvicorn app.fast_api_app:app --host 0.0.0.0 --port 8000 &
 sleep 2
 ```
+
+> [!TIP]
+> `&`로 띄운 백그라운드 프로세스는 **셸 세션에 종속**됩니다. Cloud Shell 탭을 닫거나 세션이 재시작되면 서버도 함께 종료됩니다. **서버 전용 탭을 하나 열어 `&` 없이 포그라운드로 실행**하고, 아래 `curl` 테스트는 별도 탭에서 수행하면 오류 로그도 실시간으로 볼 수 있어 훨씬 편리합니다.
+>
+> `Address already in use` 오류가 발생하면 이전 랩의 프로세스가 살아 있는 것입니다: `pkill -f "uvicorn app.fast_api_app:app"`
 
 ---
 
@@ -102,14 +113,32 @@ curl -s -X POST http://localhost:8000/api/reasoning_engine \
 4. **⚡ 4. Parallel Dispatch Audit (GW1 + GW3)**: 단일 턴에서 BigQuery FinOps와 ITSM 티켓 현황을 동시 조회(`PARALLEL_DISPATCH`)하는 것을 확인합니다.
 5. **🛡️ 5. Out-of-Domain Refusal Gate**: 사내 규정 외 질문(*"사무실 에스프레소 커피머신 석회 제거 청소 방법 알려줘"*)이 완벽히 차단되는지 확인합니다.
 
+### ✅ 시나리오별 합격 판정 기준
+
+"잘 나온 것 같다"가 아니라 **아래 값이 화면에 그대로 보이는지**로 판정하세요.
+
+| # | 화면에서 반드시 확인되어야 하는 값 |
+|---|---|
+| 1 | 예산 소진율 **`132.37%`** + Engine 배지 = **`ADK_2.0_RUNNER`** |
+| 2 | 답변이 **한국어**일 것 + `SEC-POL-2026-FW-v2.pdf` 링크 + 3개 청크(`[PRE-REQUISITE SAFETY CHECK]`·`[EXECUTION SOP]`·`[POST-CHANGE AUDIT]`)가 모두 결합되어 출력 |
+| 3 | OAuth 배지 = **`VERIFIED_BEARER_TOKEN (developer@cymbal.enterprise)`** + 2PC 락 상태 |
+| 4 | 도구 배지에 **`finops_bq_tool`과 `it_servicedesk_tool`이 둘 다** 표시 |
+| 5 | **`I cannot find certified corporate IT or security policies for this request in our technical repository.`** — 이 문장 외의 어떠한 추가 설명도 없을 것 |
+
+> [!IMPORTANT]
+> **Engine 배지가 `DETERMINISTIC_HYBRID_ROUTER`로 표시된다면 실습이 정상적으로 진행되지 않은 것입니다.** 응답 자체는 그럴듯하게 나오지만 ADK LLM이 아니라 폴백 라우터가 답한 것입니다. 아래 "Check my progress"로 원인을 확인하세요.
+
+> [!NOTE]
+> 시나리오 3의 요청자(`developer@cymbal.enterprise`)와 Step 3.2 `curl`의 요청자(`architect@cymbal.enterprise`)는 서로 다릅니다. 이는 **웹 UI 사용자와 외부 A2A 호출자라는 두 개의 서로 다른 신원을 의도적으로 시뮬레이션**한 것이며 오류가 아닙니다.
+
 ---
 
 ## ✅ Check my progress: Task 3 완료 검증
 
-Health Check 엔드포인트를 호출하여 ADK Runner 활성화 여부(`adk_runner_active: true`)와 두 계약(`A2A`, `ReasoningEngine`)이 모두 정상인지 확인합니다:
+**딥 헬스체크**(`?deep=true`)를 호출합니다. 이 프로브는 단순히 객체 존재 여부를 보는 것이 아니라 **실제로 에이전트 1턴을 실행**해서 어떤 엔진이 응답했는지를 반환합니다:
 
 ```bash
-curl -s http://localhost:8000/healthz | jq .
+curl -s "http://localhost:8000/healthz?deep=true" | jq .
 ```
 
 **정상 출력 예시:**
@@ -117,17 +146,28 @@ curl -s http://localhost:8000/healthz | jq .
 {
   "status": "healthy",
   "agent": "enterprise_hub_agent",
-  "adk_runner_active": true,
+  "model": "gemini-2.5-flash",
+  "adk_runner_constructed": true,
   "contracts": [
     "A2A",
     "ReasoningEngine"
-  ]
+  ],
+  "execution_engine": "ADK_2.0_RUNNER (gemini-2.5-flash)",
+  "probe_latency_ms": 1842,
+  "adk_runner_active": true
 }
 ```
+
+> [!WARNING]
+> **`"status": "degraded"`가 반환된다면 Task 3은 완료되지 않은 것입니다.** 이 경우 응답에 포함된 `last_adk_error`(실패 원인)와 `remediation`(조치 방법) 필드를 확인하세요.
+>
+> 참고로 `?deep=true` 없이 `/healthz`만 호출하면 `adk_runner_active`가 `null`로 반환됩니다. 이는 버그가 아니라 **거짓 초록불을 주지 않기 위한 의도된 설계**입니다. 얕은 헬스체크는 Runner 객체가 만들어졌는지만 알 수 있을 뿐, 그것이 실제로 동작하는지는 알 수 없습니다.
 
 확인 후 다음 단계 배포를 위해 로컬 백그라운드 서버를 종료합니다:
 ```bash
 pkill -f "uvicorn app.fast_api_app:app" || true
 ```
+
+> 🔧 막히셨나요? → [트러블슈팅 가이드](TROUBLESHOOTING.md)
 
 > **🎉 Task 3 완료!** 이제 [Lab 03: 클라우드 배포 (Cloud Run & Agent Engine)](03_cloud_deployment.md)으로 이동하세요.
