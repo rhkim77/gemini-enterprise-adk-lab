@@ -203,8 +203,58 @@ def it_policy_rag_tool(query: str) -> str:
         logger.info("Query below Cosine Similarity 0.70 threshold (score=%.2f): %s", best_similarity, query)
         return CERTIFIED_REFUSAL_MESSAGE
 
-    # 5. Perform Adjacent Window Stitching (Chunks N-1 to N+1)
+    # 5. Perform Adjacent Window Stitching (Chunks N-1 to N+1) from BigQuery or Local Gold Ledger
     chunks = _POLICY_CHUNKS_DB[best_policy_id]
+    bq_source_tag = "Local Gold Ledger Mirror"
+
+    # Query live BigQuery table if GCP project is configured
+    project_id = os.getenv("PROJECT_ID") or os.getenv("GOOGLE_CLOUD_PROJECT")
+    if not project_id or project_id == "<YOUR_PROJECT_ID>":
+        try:
+            import configparser
+            cfg = Path.home() / ".config" / "gcloud" / "configurations" / "config_default"
+            if cfg.exists():
+                cp = configparser.ConfigParser()
+                cp.read(cfg)
+                if cp.has_option("core", "project"):
+                    project_id = cp.get("core", "project").strip()
+        except Exception:
+            project_id = ""
+    if not project_id or project_id == "<YOUR_PROJECT_ID>":
+        try:
+            import google.auth
+            _, project_id = google.auth.default()
+        except Exception:
+            project_id = ""
+
+    if project_id and project_id != "<YOUR_PROJECT_ID>":
+        dataset_id = os.getenv("BQ_FINOPS_DATASET", "enterprise_finops_gold")
+        table_fqn = f"{project_id}.{dataset_id}.it_security_policy_embeddings"
+        try:
+            from google.cloud import bigquery
+
+            client = bigquery.Client(project=project_id)
+            sql = (
+                f"SELECT policy_id, policy_title, chunk_index, similarity_score, chunk_text, gcs_url "
+                f"FROM `{table_fqn}` WHERE policy_id = '{best_policy_id}' ORDER BY chunk_index ASC"
+            )
+            bq_rows = list(client.query(sql).result(timeout=4.0))
+            if len(bq_rows) >= 3:
+                chunks = [
+                    {
+                        "policy_id": r.policy_id,
+                        "policy_title": r.policy_title,
+                        "chunk_index": int(r.chunk_index),
+                        "similarity_score": float(r.similarity_score),
+                        "chunk_text": r.chunk_text,
+                        "gcs_url": r.gcs_url,
+                    }
+                    for r in bq_rows
+                ]
+                bq_source_tag = f"Live BigQuery (`{table_fqn}`)"
+        except Exception as exc:
+            logger.info("BigQuery policy RAG query skipped/fallback to local JSON: %s", exc)
+
     policy_title = chunks[0].get("policy_title", best_policy_id)
     stitched_text = "\n\n".join([c["chunk_text"] for c in chunks])
     citation_url = chunks[0]["gcs_url"]
@@ -213,7 +263,7 @@ def it_policy_rag_tool(query: str) -> str:
         f"### 📜 Certified Policy SOP: {best_policy_id} — {policy_title}\n"
         f"**RAG Metadata**: Stitched Adjacent Chunks `N-1 ~ N+1` ({len(chunks)} chunks) | "
         f"Cosine Similarity: `{best_similarity:.2f}` (Threshold `>= 0.70`) | "
-        f"Corpus Size: `{len(_ALL_POLICY_CHUNKS)} chunks / {len(_POLICY_CHUNKS_DB)} policies`\n\n"
+        f"Source: `{bq_source_tag}` (`{len(_ALL_POLICY_CHUNKS)} chunks / {len(_POLICY_CHUNKS_DB)} policies`)\n\n"
         f"{stitched_text}\n\n"
         f"🔗 **Verified Source Citation**: [{citation_url}]({citation_url})"
     )

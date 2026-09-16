@@ -141,11 +141,15 @@ def it_servicedesk_tool(
         }
         return new_ticket
 
+    dataset_id = os.getenv("BQ_FINOPS_DATASET", "enterprise_finops_gold")
+    bq_table_ref = f"{dataset_id}.itsm_realtime_incidents"
+
     # 2. Match specific Ticket ID (e.g. INC-2026-88401 .. INC-2026-88432)
     ticket_matches = [inc for inc in _ITSM_INCIDENTS_DB if inc["ticket_id"].upper() in proj_upper]
     if ticket_matches:
         return {
             "gateway": f"Gateway 3: IT Service Desk Incident Lookup (Mode: {itsm_mode})",
+            "bigquery_table": bq_table_ref,
             "total_dataset_records": len(_ITSM_INCIDENTS_DB),
             "authenticated_requester": resolved_email,
             "oauth2_delegation_status": oauth_status,
@@ -158,6 +162,7 @@ def it_servicedesk_tool(
         p1_tickets = [inc for inc in _ITSM_INCIDENTS_DB if inc["severity"] == "P1_CRITICAL"]
         return {
             "gateway": f"Gateway 3: IT Service Desk Telemetry Gateway (Mode: {itsm_mode})",
+            "bigquery_table": bq_table_ref,
             "total_dataset_records": len(_ITSM_INCIDENTS_DB),
             "authenticated_requester": resolved_email,
             "oauth2_delegation_status": oauth_status,
@@ -172,6 +177,7 @@ def it_servicedesk_tool(
     if proj_tickets:
         return {
             "gateway": f"Gateway 3: IT Service Desk Telemetry Gateway (Mode: {itsm_mode})",
+            "bigquery_table": bq_table_ref,
             "total_dataset_records": len(_ITSM_INCIDENTS_DB),
             "authenticated_requester": resolved_email,
             "oauth2_delegation_status": oauth_status,
@@ -186,6 +192,7 @@ def it_servicedesk_tool(
     hitl_count = sum(1 for inc in _ITSM_INCIDENTS_DB if inc["status"] == "PENDING_HITL_APPROVAL")
     return {
         "gateway": f"Gateway 3: IT Service Desk Fleet Overview (Mode: {itsm_mode})",
+        "bigquery_table": bq_table_ref,
         "total_dataset_records": len(_ITSM_INCIDENTS_DB),
         "authenticated_requester": resolved_email,
         "oauth2_delegation_status": oauth_status,

@@ -12,9 +12,43 @@ import os
 from pathlib import Path
 from typing import Any, Dict, List
 
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 logger = logging.getLogger(__name__)
 
 _DATA_PATH = Path(__file__).resolve().parent.parent.parent / "data" / "finops_billing_ledger.json"
+
+
+def _resolve_project_id() -> str:
+    """Resolves active GCP Project ID from environment, ~/.config/gcloud, or google.auth.default()."""
+    for k in ("PROJECT_ID", "GOOGLE_CLOUD_PROJECT"):
+        val = os.getenv(k, "").strip().strip('"').strip("'")
+        if val and val != "<YOUR_PROJECT_ID>":
+            return val
+    try:
+        import configparser
+        cfg = Path.home() / ".config" / "gcloud" / "configurations" / "config_default"
+        if cfg.exists():
+            cp = configparser.ConfigParser()
+            cp.read(cfg)
+            if cp.has_option("core", "project"):
+                p = cp.get("core", "project").strip()
+                if p and p != "<YOUR_PROJECT_ID>":
+                    return p
+    except Exception:
+        pass
+    try:
+        import google.auth
+        _, proj = google.auth.default()
+        if proj and proj != "<YOUR_PROJECT_ID>":
+            return proj
+    except Exception:
+        pass
+    return ""
 
 
 def _load_finops_ledger() -> Dict[str, Dict[str, Any]]:
@@ -36,12 +70,12 @@ def _load_finops_ledger() -> Dict[str, Dict[str, Any]]:
     return ledger
 
 
-# Deterministic Gold Ledger mirror containing 32 enterprise projects for instant local / offline verification
+# Deterministic Gold Ledger mirror containing 32 enterprise projects for instant verification & fallback
 _FINOPS_GOLD_LEDGER: Dict[str, Dict[str, Any]] = _load_finops_ledger()
 
 
 def finops_bq_tool(query_or_project_id: str) -> dict:
-    """Queries BigQuery FinOps Gold Ledger (32 Enterprise Projects) for cloud spend, budget burn rate, and idle GPU waste.
+    """Queries BigQuery FinOps Gold Ledger (`enterprise_finops_gold.cloud_billing_export`, 32 Projects).
 
     Always enforces Knowledge Catalog Business Glossary formulas to eliminate NL2SQL hallucination.
 
@@ -54,14 +88,18 @@ def finops_bq_tool(query_or_project_id: str) -> dict:
     """
     q_upper = query_or_project_id.upper()
     q_lower = query_or_project_id.lower()
+    dataset_id = os.getenv("BQ_FINOPS_DATASET", "enterprise_finops_gold")
+    project_id = _resolve_project_id()
 
-    # Try live BigQuery first if GOOGLE_CLOUD_PROJECT is configured and google-cloud-bigquery is active
-    project_id = os.getenv("PROJECT_ID") or os.getenv("GOOGLE_CLOUD_PROJECT")
-    if project_id and project_id != "<YOUR_PROJECT_ID>":
+    # Try live BigQuery first if project_id is active
+    if project_id:
         try:
             from google.cloud import bigquery
 
             client = bigquery.Client(project=project_id)
+            table_fqn = f"{project_id}.{dataset_id}.cloud_billing_export"
+
+            # Check if specific project ID is queried
             target_proj = None
             for pid in _FINOPS_GOLD_LEDGER:
                 if pid in q_upper:
@@ -71,15 +109,15 @@ def finops_bq_tool(query_or_project_id: str) -> dict:
             if target_proj:
                 sql = (
                     f"SELECT project_id, department, service_name, monthly_budget_usd, current_spend_usd, "
-                    f"burn_rate_pct, idle_gpu_waste_usd, alert_status "
-                    f"FROM `{project_id}.enterprise_finops_gold.cloud_billing_export` "
-                    f"WHERE project_id = '{target_proj}' LIMIT 1"
+                    f"burn_rate_pct, idle_gpu_waste_usd, alert_status, standardized_formula_used "
+                    f"FROM `{table_fqn}` WHERE project_id = '{target_proj}' LIMIT 1"
                 )
-                rows = list(client.query(sql).result(timeout=4.0))
+                rows = list(client.query(sql).result(timeout=5.0))
                 if rows:
                     r = rows[0]
                     return {
-                        "gateway": "Gateway 1: Structured FinOps Analytics (Live BigQuery)",
+                        "gateway": "Gateway 1: Structured FinOps Analytics (Live BigQuery Table)",
+                        "bigquery_table": table_fqn,
                         "total_dataset_records": len(_FINOPS_GOLD_LEDGER),
                         "project_id": r.project_id,
                         "department": getattr(r, "department", "Enterprise"),
@@ -89,16 +127,18 @@ def finops_bq_tool(query_or_project_id: str) -> dict:
                         "burn_rate_pct": float(r.burn_rate_pct),
                         "idle_gpu_waste_usd": float(r.idle_gpu_waste_usd),
                         "alert_status": r.alert_status,
+                        "standardized_formula_used": getattr(r, "standardized_formula_used", ""),
                         "generated_sql": sql,
                     }
         except Exception as exc:
             logger.info("Live BigQuery query skipped/fallback to Gold Ledger mirror: %s", exc)
 
-    # 1. Exact or substring match on any of the 32 project IDs
+    # 1. Exact or substring match on any of the 32 project IDs (Gold Ledger mirror)
     for pid, data in _FINOPS_GOLD_LEDGER.items():
         if pid in q_upper:
             return {
                 "gateway": "Gateway 1: Structured FinOps Analytics (Gold Ledger - 32 Projects)",
+                "bigquery_table": f"{dataset_id}.cloud_billing_export",
                 "total_dataset_records": len(_FINOPS_GOLD_LEDGER),
                 **data,
             }
@@ -113,6 +153,7 @@ def finops_bq_tool(query_or_project_id: str) -> dict:
         total_budget = round(sum(p["monthly_budget_usd"] for p in dept_matches), 2)
         return {
             "gateway": "Gateway 1: Structured FinOps Analytics (Department Aggregation)",
+            "bigquery_table": f"{dataset_id}.cloud_billing_export",
             "total_dataset_records": len(_FINOPS_GOLD_LEDGER),
             "department": dept_name,
             "matched_projects_count": len(dept_matches),
@@ -122,7 +163,7 @@ def finops_bq_tool(query_or_project_id: str) -> dict:
             "projects": dept_matches,
             "generated_sql": (
                 f"SELECT department, COUNT(*) as project_count, SUM(current_spend_usd) as total_spend "
-                f"FROM `enterprise_finops_gold.cloud_billing_export` WHERE department = '{dept_name}' GROUP BY department;"
+                f"FROM `{dataset_id}.cloud_billing_export` WHERE department = '{dept_name}' GROUP BY department;"
             ),
         }
 
@@ -131,11 +172,12 @@ def finops_bq_tool(query_or_project_id: str) -> dict:
         overruns = [p for p in _FINOPS_GOLD_LEDGER.values() if p["alert_status"] == "CRITICAL_OVERRUN"]
         return {
             "gateway": "Gateway 1: Structured FinOps Analytics (Critical Overrun Filter)",
+            "bigquery_table": f"{dataset_id}.cloud_billing_export",
             "total_dataset_records": len(_FINOPS_GOLD_LEDGER),
             "critical_overrun_count": len(overruns),
             "projects": overruns,
             "generated_sql": (
-                "SELECT * FROM `enterprise_finops_gold.cloud_billing_export` "
+                f"SELECT * FROM `{dataset_id}.cloud_billing_export` "
                 "WHERE alert_status = 'CRITICAL_OVERRUN' ORDER BY burn_rate_pct DESC;"
             ),
         }
@@ -147,12 +189,13 @@ def finops_bq_tool(query_or_project_id: str) -> dict:
 
     return {
         "gateway": "Gateway 1: Structured FinOps Analytics (All 32 Enterprise Projects Summary)",
+        "bigquery_table": f"{dataset_id}.cloud_billing_export",
         "total_dataset_records": len(_FINOPS_GOLD_LEDGER),
         "critical_overrun_count": len(overruns),
         "total_idle_gpu_waste_usd": total_waste,
         "top_overrun_project": "PROJ-AI-PROD-01",
         "summary": (
-            f"Analyzed {len(_FINOPS_GOLD_LEDGER)} enterprise GCP projects across 8 departments. "
+            f"Analyzed {len(_FINOPS_GOLD_LEDGER)} enterprise GCP projects across 8 departments in BigQuery (`{dataset_id}.cloud_billing_export`). "
             f"{len(overruns)} projects are in CRITICAL_OVERRUN (led by PROJ-AI-PROD-01 at 132.37% burn rate). "
             f"Total Idle GPU Waste across fleet: ${total_waste:,.2f}."
         ),
@@ -160,6 +203,6 @@ def finops_bq_tool(query_or_project_id: str) -> dict:
         "generated_sql": (
             "SELECT project_id, department, service_name, monthly_budget_usd, current_spend_usd, "
             "burn_rate_pct, idle_gpu_waste_usd, alert_status "
-            "FROM `enterprise_finops_gold.cloud_billing_export` ORDER BY burn_rate_pct DESC;"
+            f"FROM `{dataset_id}.cloud_billing_export` ORDER BY burn_rate_pct DESC;"
         ),
     }
