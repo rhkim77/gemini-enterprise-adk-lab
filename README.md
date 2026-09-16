@@ -11,7 +11,6 @@
 * **리비전 정보 (Revision)**: `v2.1.0` (`Rev. 2026-09-16` — ADK 2.0 `InMemoryRunner`, OAuth 2.0 Delegation & Bilingual Cosine RAG 반영)
 * **소요 시간**: 약 2시간 (총 5개 모듈 구성)
 * **난이도**: 중급 / 고급 (Intermediate / Advanced)
-* **아키텍처 레퍼런스**: [hajekim/build-with-gemini-day1-agent](https://github.com/hajekim/build-with-gemini-day1-agent)의 모듈형 아키텍처 및 Dual-Contract 서빙 패턴 계승 (`[확인됨 / Verified]`)
 
 ---
 
