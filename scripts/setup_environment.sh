@@ -37,9 +37,8 @@ else
   echo "[Step 1-2/4] Skipping remote GCP API/Dataset creation (PROJECT_ID not configured)."
 fi
 
-# 3. Create Python Virtual Environment & Install Pinned Dependencies via Corp Airlock
-echo "[Step 3/4] Setting up Python Virtual Environment (.venv) via Corp Airlock (gpkg setup + uv)..."
-gpkg setup || true
+# 3. Create Python Virtual Environment & Install Pinned Dependencies
+echo "[Step 3/4] Setting up Python Virtual Environment (.venv) & Installing Dependencies..."
 if command -v uv &> /dev/null; then
   uv venv .venv --clear
   uv pip install -r requirements.txt

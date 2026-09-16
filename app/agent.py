@@ -1,7 +1,7 @@
 # Copyright 2026 Google LLC. Licensed under Apache 2.0.
 """Enterprise Cloud FinOps & IT Hub Coordinator Agent (enterprise_hub_agent).
 
-Orchestrates 3 Decoupled Tool Gateways:
+Orchestrates 3 Decoupled Tool Gateways via Google ADK 2.0:
 1. Gateway 1: Structured FinOps Analytics (`finops_bq_tool`)
 2. Gateway 2: IT Security Policy Vector RAG with Window Stitching (`it_policy_rag_tool`)
 3. Gateway 3: Dual-Mode IT Service Desk & Quota Action Gateway (`it_servicedesk_tool`)
@@ -9,6 +9,7 @@ Orchestrates 3 Decoupled Tool Gateways:
 import datetime
 import logging
 import os
+from typing import Any, Optional
 
 try:
     from dotenv import load_dotenv
@@ -23,11 +24,12 @@ try:
     from google.genai import types
 except ImportError:
     class Agent:
-        def __init__(self, name, model=None, instruction="", tools=None):
+        def __init__(self, name, model=None, instruction="", tools=None, before_agent_callback=None):
             self.name = name
             self.model = model
             self.instruction = instruction
             self.tools = tools or []
+            self.before_agent_callback = before_agent_callback
 
     class App:
         def __init__(self, name="enterprise_hub_agent", root_agent=None, agent=None, plugins=None):
@@ -61,10 +63,10 @@ You orchestrate 3 specialized, decoupled tool gateways to assist employees, FinO
 1. `finops_bq_tool`: Structured FinOps Analytics gateway querying BigQuery (`enterprise_finops_gold.cloud_billing_export`).
    - Always report standardized business formulas verbatim (Budget Burn Rate %, Idle GPU Waste USD, Alert Status).
 
-2. `it_policy_rag_tool`: Vector similarity search with adjacent context window stitching (`N-1` to `N+1`) over corporate IT & Security manuals (`SEC-POL-2026-FW`, `FIN-POL-2026-GPU`).
+2. `it_policy_rag_tool`: Vector similarity search with adjacent context window stitching (`N-1` to `N+1`) over corporate IT & Security manuals (`SEC-POL-2026-FW`, `FIN-POL-2026-GPU`, `NET-POL-2026-PSCI`, `DATA-POL-2026-DLP`).
    - Always include the clickable HTTPS GCS citation URL (`https://storage.cloud.google.com/...`) in your final response.
 
-3. `it_servicedesk_tool`: Real-time IT Service Desk telemetry and 2-Phase Commit (2PC) HITL ticket creation (`FIREWALL_OPEN`, `GPU_QUOTA_INCREASE`, `STATUS_CHECK`).
+3. `it_servicedesk_tool`: Real-time IT Service Desk telemetry and 2-Phase Commit (2PC) HITL ticket creation (`FIREWALL_OPEN`, `GPU_QUOTA_INCREASE`, `STATUS_CHECK`) with OAuth 2.0 user identity delegation.
 
 DISPATCH & GROUNDING PROTOCOLS:
 - SINGLE-TOOL DISPATCH: Route direct policy or technical questions to `it_policy_rag_tool` first. If `it_policy_rag_tool` returns the certified refusal message ("I cannot find certified corporate IT or security policies for this request in our technical repository."), reply ONLY with that exact refusal sentence without adding unverified advice.
@@ -73,8 +75,18 @@ DISPATCH & GROUNDING PROTOCOLS:
 """
 
 
-def validate_and_update_temporal_cache(session_state: dict, current_date_str: str = None) -> dict:
-    """Purges cached overrun project state if the calendar day has rolled over."""
+def validate_and_update_temporal_cache(
+    context_or_state: Any, current_date_str: Optional[str] = None
+) -> Any:
+    """Purges cached overrun project state if the calendar day has rolled over.
+
+    Supports both:
+    1. ADK `before_agent_callback(callback_context: CallbackContext)` lifecycle execution
+    2. Direct dictionary invocation `validate_and_update_temporal_cache(state_dict, date_str)` for unit testing
+    """
+    is_callback_ctx = hasattr(context_or_state, "state") and not isinstance(context_or_state, dict)
+    session_state = context_or_state.state if is_callback_ctx else context_or_state
+
     today_str = current_date_str or datetime.date.today().isoformat()
     cached_date = session_state.get("top_overrun_date")
 
@@ -85,7 +97,8 @@ def validate_and_update_temporal_cache(session_state: dict, current_date_str: st
     elif not cached_date:
         session_state["top_overrun_date"] = today_str
 
-    return session_state
+    # ADK before_agent_callback expects None so normal execution proceeds
+    return None if is_callback_ctx else session_state
 
 
 retry_options = getattr(types, "HttpRetryOptions", None)
@@ -96,6 +109,7 @@ root_agent = Agent(
     model=Gemini(model=MODEL, retry_options=retry_cfg),
     instruction=SYSTEM_INSTRUCTION,
     tools=[finops_bq_tool, it_policy_rag_tool, it_servicedesk_tool],
+    before_agent_callback=validate_and_update_temporal_cache,
 )
 
 _plugins = []

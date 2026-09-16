@@ -87,7 +87,7 @@ remote_agent = agent_engines.create(
     agent_engine=adk_app,
     requirements=[
         "google-adk==2.8.0",
-        "mcp==1.29.1",
+        "mcp<2.0.0",
         "google-cloud-aiplatform[agent_engines,adk]>=1.82.0",
         "google-genai>=1.5.0",
     ],

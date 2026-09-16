@@ -16,7 +16,7 @@
     </div>
     <div class="flex items-center space-x-4 text-xs text-slate-400">
       <a href="/.well-known/agent-card.json" target="_blank" class="hover:text-blue-400 underline">View A2A Agent Card JSON</a>
-      <span class="px-2 py-1 bg-emerald-950 text-emerald-400 border border-emerald-800 rounded">Dual-Contract Active</span>
+      <span class="px-2 py-1 bg-emerald-950 text-emerald-400 border border-emerald-800 rounded">Dual-Contract + OAuth 2.0 Ready</span>
     </div>
   </header>
 
@@ -30,14 +30,17 @@
           <button onclick="runPrompt('Analyze FinOps budget burn rate and idle GPU waste for PROJ-AI-PROD-01')" class="text-xs bg-slate-800 hover:bg-blue-900/60 border border-slate-700 px-3 py-1.5 rounded-lg transition">
             📊 1. FinOps Burn Rate (Gateway 1)
           </button>
-          <button onclick="runPrompt('What is the firewall port open procedure under policy SEC-POL-2026-FW?')" class="text-xs bg-slate-800 hover:bg-blue-900/60 border border-slate-700 px-3 py-1.5 rounded-lg transition">
-            📜 2. Security Policy RAG + Stitching (Gateway 2)
+          <button onclick="runPrompt('SEC-POL-2026-FW 보안 규정에 따른 방화벽 포트 오픈 절차 알려줘')" class="text-xs bg-slate-800 hover:bg-blue-900/60 border border-slate-700 px-3 py-1.5 rounded-lg transition">
+            📜 2. Security Policy RAG + Stitching (Gateway 2 - KR/EN)
+          </button>
+          <button onclick="runPrompt('Open a firewall ticket for PROJ-AI-PROD-01 to enable PSC-I southbound access')" class="text-xs bg-slate-800 hover:bg-blue-900/60 border border-slate-700 px-3 py-1.5 rounded-lg transition">
+            🎫 3. 2PC HITL Ticket + OAuth Audit (Gateway 3)
           </button>
           <button onclick="runPrompt('Audit live ITSM incidents and compare against FinOps burn rate for PROJ-AI-PROD-01')" class="text-xs bg-slate-800 hover:bg-blue-900/60 border border-slate-700 px-3 py-1.5 rounded-lg transition">
-            ⚡ 3. Parallel Dispatch Audit (GW1 + GW3)
+            ⚡ 4. Parallel Dispatch Audit (GW1 + GW3)
           </button>
-          <button onclick="runPrompt('How do I descale the office espresso coffee machine?')" class="text-xs bg-rose-950/60 hover:bg-rose-900/80 border border-rose-800 text-rose-200 px-3 py-1.5 rounded-lg transition">
-            🛡️ 4. Out-of-Domain Refusal Gate
+          <button onclick="runPrompt('사무실 에스프레소 커피머신 석회 제거 청소 방법 알려줘')" class="text-xs bg-rose-950/60 hover:bg-rose-900/80 border border-rose-800 text-rose-200 px-3 py-1.5 rounded-lg transition">
+            🛡️ 5. Out-of-Domain Refusal Gate
           </button>
         </div>
       </div>
@@ -45,13 +48,13 @@
       <!-- Messages Container -->
       <div id="chatBox" class="flex-1 p-5 space-y-4 overflow-y-auto max-h-[460px]">
         <div class="bg-slate-800/70 border border-slate-700/70 rounded-lg p-4 text-sm text-slate-300">
-          👋 Welcome to the <strong>Cymbal Enterprise AI Hub Studio</strong>. Select any verification scenario above or type a custom query below to inspect ADK tool dispatching, SQL generation, Window-Stitched citations, and Gemini Enterprise A2A responses.
+          👋 Welcome to the <strong>Cymbal Enterprise AI Hub Studio</strong>. Select any verification scenario above or type a custom query in Korean or English to inspect ADK tool dispatching, OAuth 2.0 identity propagation, SQL generation, and Window-Stitched citations.
         </div>
       </div>
 
       <!-- Input Form -->
       <form onsubmit="handleFormSubmit(event)" class="p-4 border-t border-slate-800 bg-slate-900 flex gap-3">
-        <input id="userInput" type="text" placeholder="Ask about FinOps burn rate, SEC-POL-2026-FW firewall SOP, or open a 2PC ticket..." class="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500" />
+        <input id="userInput" type="text" placeholder="Ask about FinOps burn rate, SEC-POL-2026-FW 방화벽 규정, or open a 2PC ticket..." class="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500" />
         <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm px-5 py-2.5 rounded-lg transition">Send</button>
       </form>
     </section>
@@ -60,11 +63,19 @@
     <section class="lg:col-span-5 flex flex-col space-y-6">
       <!-- Dispatch & Telemetry Card -->
       <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg">
-        <h2 class="text-sm font-bold uppercase tracking-wider text-slate-400 mb-3">🔍 ADK Trajectory & Telemetry Inspector</h2>
+        <h2 class="text-sm font-bold uppercase tracking-wider text-slate-400 mb-3">🔍 ADK Trajectory & OAuth Telemetry Inspector</h2>
         <div class="space-y-2 text-xs">
+          <div class="flex justify-between py-1.5 border-b border-slate-800">
+            <span class="text-slate-400">Execution Engine:</span>
+            <span id="engineBadge" class="font-mono font-semibold text-blue-400">READY</span>
+          </div>
           <div class="flex justify-between py-1.5 border-b border-slate-800">
             <span class="text-slate-400">Dispatch Mode:</span>
             <span id="dispatchBadge" class="font-mono font-semibold text-emerald-400">IDLE</span>
+          </div>
+          <div class="flex justify-between py-1.5 border-b border-slate-800">
+            <span class="text-slate-400">OAuth 2.0 Delegation:</span>
+            <span id="oauthBadge" class="font-mono text-purple-300">-</span>
           </div>
           <div class="flex justify-between py-1.5 border-b border-slate-800">
             <span class="text-slate-400">Execution Latency:</span>
@@ -113,7 +124,11 @@
 
       const res = await fetch('/api/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer demo-oauth2-token-cymbal-2026',
+          'X-Requester-Email': 'developer@cymbal.enterprise'
+        },
         body: JSON.stringify({ message })
       });
       const data = await res.json();
@@ -128,9 +143,11 @@
       chatBox.scrollTop = chatBox.scrollHeight;
 
       // Update Inspector
+      document.getElementById('engineBadge').textContent = data.execution_engine || 'ADK_2.0';
       document.getElementById('dispatchBadge').textContent = data.dispatch_mode;
+      document.getElementById('oauthBadge').textContent = `${data.oauth2_delegation_status || 'VERIFIED'} (${data.authenticated_user || 'developer@cymbal.enterprise'})`;
       document.getElementById('latencyBadge').textContent = `${data.latency_ms} ms`;
-      document.getElementById('sqlBox').textContent = data.generated_sql || (data.gcs_links.length ? data.gcs_links.join('\n') : 'No SQL generated (Policy/Refusal path)');
+      document.getElementById('sqlBox').textContent = data.generated_sql || (data.gcs_links && data.gcs_links.length ? data.gcs_links.join('\n') : 'No SQL generated (Policy/Ticket/Refusal path)');
 
       // Render Plotly if present
       if (data.plotly_spec) {
