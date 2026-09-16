@@ -16,17 +16,48 @@
 
 ---
 
+## 🛠️ Step 0: Google Cloud SDK (`gcloud`) 설치 확인 및 인증 (사전 필수 작업)
+
+프로젝트 ID 확인(`gcloud config get-value project`), GCP API 활성화, 그리고 Python SDK(`google-cloud-bigquery`, `google-adk`)를 통한 BigQuery 100건 데이터 적재를 수행하려면 **Google Cloud SDK (`gcloud` 및 `bq` CLI)**가 우선 설치 및 인증되어 있어야 합니다 (`[확인됨 / Verified]`).
+
+> 💡 **Google Cloud Shell 사용자**: Cloud Shell에는 Google Cloud SDK와 자격 증명이 이미 기본 내장되어 있으므로 바로 **Step 1**으로 이동하셔도 됩니다. 로컬 PC, 사내 Cloudtop, 또는 신규 Linux VM 환경인 경우 아래 절차를 먼저 수행하세요.
+
+### 1) `gcloud` SDK 설치 여부 및 PATH 확인
+```bash
+# gcloud 버전 확인 (미설치 또는 PATH 누락 시 아래 설치 명령어 실행)
+gcloud --version
+```
+만약 `command not found` 에러가 발생한다면 아래 원클릭 명령어로 Google Cloud SDK를 설치하고 `PATH`에 등록합니다:
+```bash
+# Linux / macOS 환경 Google Cloud SDK 무인 설치 및 PATH 적용
+curl -sSL https://sdk.cloud.google.com | bash -s -- --disable-prompts --install-dir="$HOME"
+export PATH="$HOME/google-cloud-sdk/bin:$PATH"
+echo 'export PATH="$HOME/google-cloud-sdk/bin:$PATH"' >> ~/.bashrc
+```
+
+### 2) CLI 로그인 및 Application Default Credentials (ADC) 인증
+`gcloud` CLI 명령어뿐만 아니라, Python 기반 BigQuery 적재 스크립트(`scripts/seed_bigquery.py`) 및 ADK 에이전트가 Google Cloud API를 호출할 수 있도록 **반드시 아래 두 가지 인증을 모두 완료**합니다:
+
+```bash
+# 1. gcloud CLI 사용자 계정 로그인
+gcloud auth login
+
+# 2. [필수] Python SDK(BigQuery / Vertex AI / ADK)용 Application Default Credentials(ADC) 인증
+gcloud auth application-default login
+
+# 3. 실습을 진행할 대상 Google Cloud Project ID 설정
+gcloud config set project <YOUR_PROJECT_ID>
+```
+
+---
+
 ## 🛠️ Step 1: 실습 디렉토리 이동 및 프로젝트 ID 확인
 
-터미널(또는 Google Cloud Shell)을 열고 실습 디렉토리로 이동합니다:
+터미널을 열고 실습 디렉토리로 이동한 뒤, `gcloud`에 설정된 현재 프로젝트 ID를 환경변수로 불러옵니다:
 
 ```bash
 cd gemini-enterprise-adk-lab
-```
 
-현재 활성화된 Google Cloud Project ID를 확인합니다:
-
-```bash
 export PROJECT_ID=$(gcloud config get-value project)
 echo "현재 활성 GCP Project ID: ${PROJECT_ID}"
 ```

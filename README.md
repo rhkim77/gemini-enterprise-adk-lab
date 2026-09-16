@@ -118,16 +118,23 @@ flowchart TB
 실습 환경을 빠르게 구성하고 로컬 웹 스튜디오와 자동 검증 스위트를 즉시 실행하려면 아래 명령어를 순서대로 입력합니다:
 
 ```bash
+# 0. [사전 필수] Google Cloud SDK (gcloud) 설치 확인 및 ADC 자격 증명 인증
+# (Google Cloud Shell 환경이 아닌 로컬 PC / 신규 VM의 경우 먼저 실행)
+gcloud --version || (curl -sSL https://sdk.cloud.google.com | bash -s -- --disable-prompts && export PATH="$HOME/google-cloud-sdk/bin:$PATH")
+gcloud auth login
+gcloud auth application-default login
+gcloud config set project <YOUR_PROJECT_ID>
+
 # 1. 저장소 복제 및 디렉토리 이동
 git clone https://github.com/rhkim77/gemini-enterprise-adk-lab.git
 cd gemini-enterprise-adk-lab
 
-# 2. 환경변수(.env) 파일 설정
+# 2. 환경변수(.env) 파일 설정 (현재 활성 GCP 프로젝트 ID 자동 바인딩)
 cp .env.example .env
 export PROJECT_ID=$(gcloud config get-value project)
 sed -i "s/<YOUR_PROJECT_ID>/${PROJECT_ID}/g" .env
 
-# 3. 원클릭 부트스트랩 실행 (100건 데이터셋 BigQuery/로컬 시딩 및 .venv 패키지 설치)
+# 3. 원클릭 부트스트랩 실행 (gcloud SDK 자동 검증, 100건 데이터셋 BigQuery 적재 및 .venv 설치)
 chmod +x scripts/setup_environment.sh
 ./scripts/setup_environment.sh
 

@@ -103,16 +103,22 @@ When you run the initialization script (`./scripts/setup_environment.sh`), it au
 ## ⚡ 4. Quickstart Guide
 
 ```bash
+# 0. [Prerequisite] Verify Google Cloud SDK (gcloud) & Authenticate Application Default Credentials (ADC)
+gcloud --version || (curl -sSL https://sdk.cloud.google.com | bash -s -- --disable-prompts && export PATH="$HOME/google-cloud-sdk/bin:$PATH")
+gcloud auth login
+gcloud auth application-default login
+gcloud config set project <YOUR_PROJECT_ID>
+
 # 1. Configure Environment
 cp .env.example .env
 export PROJECT_ID=$(gcloud config get-value project)
 sed -i "s/<YOUR_PROJECT_ID>/${PROJECT_ID}/g" .env
 
-# 2. Run One-Click Bootstrap (Creates BigQuery datasets/tables & Python venv via Corp Airlock)
+# 2. Run One-Click Bootstrap (Verifies gcloud SDK, seeds 100 records into BigQuery & installs Python venv)
 chmod +x scripts/setup_environment.sh
 ./scripts/setup_environment.sh
 
-# 3. Run Automated Validation Suite (Verifies all 3 gateways + refusal guardrail)
+# 3. Run Automated Validation Suite (Verifies all 100 records across 3 gateways + refusal guardrail)
 source .venv/bin/activate
 python3 scripts/validate_agent.py
 
