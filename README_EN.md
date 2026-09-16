@@ -90,19 +90,7 @@ flowchart TB
 
 ---
 
-## 📚 Lab Curriculum & Tasks (Step-by-Step Guide)
-
-| Task | Lab Guide Link | Core Objectives & Deliverables | Duration |
-| :--- | :--- | :--- | :--- |
-| **Task 1 (Lab 00)** | [**00: Environment Setup & One-Click Bootstrap**](labs/00_prerequisites_and_setup.md) | Configure `.env`, enable GCP APIs, run `setup_environment.sh` to create BigQuery FinOps & IT Policy tables, and pin `google-adk==2.8.0` & `mcp==1.29.1`. | 15 mins |
-| **Task 2 (Lab 01)** | [**01: ADK 2.0 Agent & 3 Decoupled Tool Gateways**](labs/01_adk_agent_and_tools.md) | Implement `enterprise_hub_agent` (`app/agent.py`), build the 3 specialized gateways (`finops_bq_tool`, `it_policy_rag_tool` with `N-1~N+1` window stitching & refusal guardrail, `it_servicedesk_tool`), and pass `validate_agent.py`. | 30 mins |
-| **Task 3 (Lab 02)** | [**02: Dual-Contract Serving & Local Studio Test**](labs/02_dual_contract_and_studio.md) | Mount both A2A (`/.well-known/agent-card.json`) and Reasoning Engine (`/api/reasoning_engine`) contracts on FastAPI, test 4 scenarios in Web Studio (`/studio`), and inspect BigQuery telemetry logs. | 25 mins |
-| **Task 4 (Lab 03)** | [**03: Cloud Deployment (Cloud Run & Agent Engine)**](labs/03_cloud_deployment.md) | Deploy the Dual-Contract container to **Google Cloud Run** (`gcloud run deploy`) and/or **Vertex AI Agent Engine** (`AdkApp`), verifying live endpoints via `curl`. | 20 mins |
-| **Task 5 (Lab 04)** | [**04: Gemini Enterprise Integration & OAuth 2.0**](labs/04_gemini_enterprise_integration.md) | Register OAuth 2.0 `serverSideOauth2` resource in Discovery Engine, register the agent in **Gemini Enterprise Console** via **Track A (A2A)** and **Track B (Agent Engine)**, run E2E employee queries, and execute `teardown.sh`. | 30 mins |
-
----
-
-## 📊 Enterprise Realistic Test Datasets & Automatic BigQuery Seeding
+## 📊 3. Enterprise Realistic Test Datasets & Automatic BigQuery Seeding
 
 To evaluate structured FinOps analytics (NL2SQL), corporate security policy search (Vector RAG), and infrastructure mutation governance (ITSM Action) under realistic production conditions, this repository comes pre-packaged with **100 enterprise test records** in the `data/` directory.
 
@@ -112,7 +100,7 @@ When you run the initialization script (`./scripts/setup_environment.sh`), it au
 
 ---
 
-## ⚡ 2-Minute Quickstart
+## ⚡ 4. Quickstart Guide
 
 ```bash
 # 1. Configure Environment
@@ -132,3 +120,15 @@ python3 scripts/validate_agent.py
 uvicorn app.fast_api_app:app --host 0.0.0.0 --port 8000
 ```
 Open `http://localhost:8000/studio` in your browser to test the agent interactively.
+
+---
+
+## 📚 5. Step-by-Step Implementation Guide (5 Modules)
+
+| Task | Lab Guide Link | Core Objectives & Deliverables | Duration |
+| :--- | :--- | :--- | :--- |
+| **Task 1 (Lab 00)** | [**00: Environment Setup & One-Click Bootstrap**](labs/00_prerequisites_and_setup.md) | Configure `.env`, enable GCP APIs, run `setup_environment.sh` to create BigQuery FinOps & IT Policy tables, and pin `google-adk==2.8.0` & `mcp==1.29.1`. | 15 mins |
+| **Task 2 (Lab 01)** | [**01: ADK 2.0 Agent & 3 Decoupled Tool Gateways**](labs/01_adk_agent_and_tools.md) | Implement `enterprise_hub_agent` (`app/agent.py`), build the 3 specialized gateways (`finops_bq_tool`, `it_policy_rag_tool` with `N-1~N+1` window stitching & refusal guardrail, `it_servicedesk_tool`), and pass `validate_agent.py`. | 30 mins |
+| **Task 3 (Lab 02)** | [**02: Dual-Contract Serving & Local Studio Test**](labs/02_dual_contract_and_studio.md) | Mount both A2A (`/.well-known/agent-card.json`) and Reasoning Engine (`/api/reasoning_engine`) contracts on FastAPI, test 4 scenarios in Web Studio (`/studio`), and inspect BigQuery telemetry logs. | 25 mins |
+| **Task 4 (Lab 03)** | [**03: Cloud Deployment (Cloud Run & Agent Engine)**](labs/03_cloud_deployment.md) | Deploy the Dual-Contract container to **Google Cloud Run** (`gcloud run deploy`) and/or **Vertex AI Agent Engine** (`AdkApp`), verifying live endpoints via `curl`. | 20 mins |
+| **Task 5 (Lab 04)** | [**04: Gemini Enterprise Integration & OAuth 2.0**](labs/04_gemini_enterprise_integration.md) | Register OAuth 2.0 `serverSideOauth2` resource in Discovery Engine, register the agent in **Gemini Enterprise Console** via **Track A (A2A)** and **Track B (Agent Engine)**, run E2E employee queries, and execute `teardown.sh`. | 30 mins |

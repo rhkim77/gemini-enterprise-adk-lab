@@ -103,21 +103,7 @@ flowchart TB
 
 ---
 
-## 📚 3. Cymbal Enterprise AI Hub 단계별 구축 가이드 (총 5개 모듈)
-
-각 가이드 문서에는 단계별 명령어와 함께 구축 완료 여부를 즉시 검증할 수 있는 **자동 검증 스위트(`validate_agent.py`)** 스크립트가 포함되어 있습니다.
-
-| 단계 (Module) | 가이드 문서 링크 | 핵심 구현 목표 및 검증 항목 | 소요 시간 |
-| :--- | :--- | :--- | :--- |
-| **Task 1 (Lab 00)** | [**Lab 00: 환경 설정 및 원클릭 부트스트랩**](labs/00_prerequisites_and_setup.md) | • `.env` 환경변수 설정 및 GCP 필수 API 5종 활성화<br/>• `setup_environment.sh` 실행 (`scripts/seed_bigquery.py`를 통해 **총 100건의 엔터프라이즈 실전 데이터셋** BigQuery/로컬 자동 시딩)<br/>• `uv` / `venv` 기반 `google-adk==2.8.0`, `mcp<2.0.0` 의존성 고정 (`[확인됨 / Verified]`) | **15분** |
-| **Task 2 (Lab 01)** | [**Lab 01: ADK 2.0 에이전트 및 3대 도구 구현**](labs/01_adk_agent_and_tools.md) | • `app/agent.py` 코디네이터 에이전트(단일/병렬 디스패치 프롬프트) 및 자정 기준 캐시 무효화 콜백(`before_agent_callback`) 구현<br/>• 3대 도구(`finops_bq_tool`, `it_policy_rag_tool` 한국어/영어 바이링구얼 코사인 유사도, `it_servicedesk_tool` OAuth 2.0 신원 위임) 연동 검증<br/>• `scripts/validate_agent.py` 자동 검증 테스트 스위트 **8/8 PASS (100 Records Verified)** 달성 | **30분** |
-| **Task 3 (Lab 02)** | [**Lab 02: Dual-Contract 서빙 & 웹 스튜디오 테스트**](labs/02_dual_contract_and_studio.md) | • `app/fast_api_app.py`를 통해 **ADK `InMemoryRunner`** 구동 및 **A2A(`/.well-known/agent-card.json`)**와 **Reasoning Engine(`/api/reasoning_engine`)** 동시 마운트<br/>• 로컬 웹 스튜디오(`/studio`, 포트 8000)에서 5대 검증 시나리오(Plotly 차트, 윈도우 스티칭 Citation, OAuth 2.0 2PC 티켓 감사, 병렬 감사, 도메인 외 거절) 대화형 테스트 | **25분** |
-| **Task 4 (Lab 03)** | [**Lab 03: 클라우드 배포 (Cloud Run & Agent Engine)**](labs/03_cloud_deployment.md) | • **배포 트랙 A (Cloud Run)**: 컨테이너 이미지 빌드 후 Cloud Run 배포 및 외부 HTTPS A2A Agent Card URL 확보<br/>• **배포 트랙 B (Vertex AI Agent Engine)**: `vertexai.agent_engines.create(AdkApp)`를 통한 완전 관리형 런타임 배포 | **20분** |
-| **Task 5 (Lab 04)** | [**Lab 04: Gemini Enterprise 연동 & OAuth 2.0 설정**](labs/04_gemini_enterprise_integration.md) | • **OAuth 2.0 권한 위임**: Discovery Engine API에 `serverSideOauth2` 리소스 등록 (`redirect_uri`: `https://vertexaisearch.cloud.google.com/oauth-redirect`)<br/>• **Gemini Enterprise 콘솔 등록 (2가지 트랙 비교 실습)**:<br/>  - *Track A (Custom agent via A2A)*: Cloud Run 에이전트 카드 등록 (`defaultInputModes: ["text/plain"]` 스키마 보정 내장)<br/>  - *Track B (Custom agent via Agent Engine)*: Reasoning Engine ID 직접 바인딩<br/>• **E2E 시연 및 Teardown**: Gemini Enterprise 웹 앱에서 통합 질의 테스트 후 `teardown.sh` 리소스 정리 | **30분** |
-
----
-
-## 📊 3.5 엔터프라이즈 실전 테스트 데이터셋 구성 및 BigQuery 자동 적재
+## 📊 3. 엔터프라이즈 실전 테스트 데이터셋 구성 및 BigQuery 자동 적재
 
 본 프로젝트는 에이전트의 정형 데이터 분석(NL2SQL), 비정형 보안 규정 검색(Vector RAG), 그리고 실시간 인프라 변경 거버넌스(ITSM Action)를 실제 운영 환경과 동일한 수준으로 검증할 수 있도록 `data/` 디렉토리에 **총 100건의 엔터프라이즈 실전 테스트 데이터셋**을 기본 준비해 두었습니다.
 
@@ -127,7 +113,7 @@ flowchart TB
 
 ---
 
-## ⚡ 4. 2분 빠른 시작 가이드 (Quickstart)
+## ⚡ 4. 빠른 시작 가이드 (Quickstart)
 
 실습 환경을 빠르게 구성하고 로컬 웹 스튜디오와 자동 검증 스위트를 즉시 실행하려면 아래 명령어를 순서대로 입력합니다:
 
@@ -157,7 +143,21 @@ chmod +x scripts/setup_environment.sh
 
 ---
 
-## 🧹 5. 실습 리소스 정리 (Teardown)
+## 📚 5. Cymbal Enterprise AI Hub 단계별 구축 가이드 (총 5개 모듈)
+
+각 가이드 문서에는 단계별 명령어와 함께 구축 완료 여부를 즉시 검증할 수 있는 **자동 검증 스위트(`validate_agent.py`)** 스크립트가 포함되어 있습니다.
+
+| 단계 (Module) | 가이드 문서 링크 | 핵심 구현 목표 및 검증 항목 | 소요 시간 |
+| :--- | :--- | :--- | :--- |
+| **Task 1 (Lab 00)** | [**Lab 00: 환경 설정 및 원클릭 부트스트랩**](labs/00_prerequisites_and_setup.md) | • `.env` 환경변수 설정 및 GCP 필수 API 5종 활성화<br/>• `setup_environment.sh` 실행 (`scripts/seed_bigquery.py`를 통해 **총 100건의 엔터프라이즈 실전 데이터셋** BigQuery/로컬 자동 시딩)<br/>• `uv` / `venv` 기반 `google-adk==2.8.0`, `mcp<2.0.0` 의존성 고정 (`[확인됨 / Verified]`) | **15분** |
+| **Task 2 (Lab 01)** | [**Lab 01: ADK 2.0 에이전트 및 3대 도구 구현**](labs/01_adk_agent_and_tools.md) | • `app/agent.py` 코디네이터 에이전트(단일/병렬 디스패치 프롬프트) 및 자정 기준 캐시 무효화 콜백(`before_agent_callback`) 구현<br/>• 3대 도구(`finops_bq_tool`, `it_policy_rag_tool` 한국어/영어 바이링구얼 코사인 유사도, `it_servicedesk_tool` OAuth 2.0 신원 위임) 연동 검증<br/>• `scripts/validate_agent.py` 자동 검증 테스트 스위트 **8/8 PASS (100 Records Verified)** 달성 | **30분** |
+| **Task 3 (Lab 02)** | [**Lab 02: Dual-Contract 서빙 & 웹 스튜디오 테스트**](labs/02_dual_contract_and_studio.md) | • `app/fast_api_app.py`를 통해 **ADK `InMemoryRunner`** 구동 및 **A2A(`/.well-known/agent-card.json`)**와 **Reasoning Engine(`/api/reasoning_engine`)** 동시 마운트<br/>• 로컬 웹 스튜디오(`/studio`, 포트 8000)에서 5대 검증 시나리오(Plotly 차트, 윈도우 스티칭 Citation, OAuth 2.0 2PC 티켓 감사, 병렬 감사, 도메인 외 거절) 대화형 테스트 | **25분** |
+| **Task 4 (Lab 03)** | [**Lab 03: 클라우드 배포 (Cloud Run & Agent Engine)**](labs/03_cloud_deployment.md) | • **배포 트랙 A (Cloud Run)**: 컨테이너 이미지 빌드 후 Cloud Run 배포 및 외부 HTTPS A2A Agent Card URL 확보<br/>• **배포 트랙 B (Vertex AI Agent Engine)**: `vertexai.agent_engines.create(AdkApp)`를 통한 완전 관리형 런타임 배포 | **20분** |
+| **Task 5 (Lab 04)** | [**Lab 04: Gemini Enterprise 연동 & OAuth 2.0 설정**](labs/04_gemini_enterprise_integration.md) | • **OAuth 2.0 권한 위임**: Discovery Engine API에 `serverSideOauth2` 리소스 등록 (`redirect_uri`: `https://vertexaisearch.cloud.google.com/oauth-redirect`)<br/>• **Gemini Enterprise 콘솔 등록 (2가지 트랙 비교 실습)**:<br/>  - *Track A (Custom agent via A2A)*: Cloud Run 에이전트 카드 등록 (`defaultInputModes: ["text/plain"]` 스키마 보정 내장)<br/>  - *Track B (Custom agent via Agent Engine)*: Reasoning Engine ID 직접 바인딩<br/>• **E2E 시연 및 Teardown**: Gemini Enterprise 웹 앱에서 통합 질의 테스트 후 `teardown.sh` 리소스 정리 | **30분** |
+
+---
+
+## 🧹 6. 실습 리소스 정리 (Teardown)
 
 실습을 모두 마친 후 불필요한 클라우드 과금을 방지하기 위해 정리 스크립트를 실행합니다:
 
@@ -169,5 +169,5 @@ chmod +x scripts/teardown.sh
 
 ---
 
-## 📜 라이선스
+## 📜 7. 라이선스
 Copyright 2026 Google LLC. Apache License 2.0 규정에 따라 제공됩니다.
