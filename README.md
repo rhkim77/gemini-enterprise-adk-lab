@@ -118,14 +118,16 @@ flowchart TB
 실습 환경을 빠르게 구성하고 로컬 웹 스튜디오와 자동 검증 스위트를 즉시 실행하려면 아래 명령어를 순서대로 입력합니다:
 
 ```bash
-# 0. [사전 필수] Google Cloud SDK (gcloud) 설치 확인 및 ADC 자격 증명 인증
-# (Google Cloud Shell 환경이 아닌 로컬 PC / 신규 VM의 경우 먼저 실행)
+# 0. [사전 필수] Git CLI 및 Google Cloud SDK (gcloud) 설치 확인 & 자격 증명 인증
+# (Cloud Shell에는 git과 gcloud가 기본 내장되어 있습니다. 로컬 PC / 신규 VM인 경우 아래 확인)
+git --version || sudo apt-get update && sudo apt-get install -y git
 gcloud --version || (curl -sSL https://sdk.cloud.google.com | bash -s -- --disable-prompts && export PATH="$HOME/google-cloud-sdk/bin:$PATH")
 gcloud auth login
 gcloud auth application-default login
 gcloud config set project <YOUR_PROJECT_ID>
 
 # 1. 저장소 복제 및 디렉토리 이동
+# (Private 저장소인 경우 GitHub CLI `gh auth login` 또는 SSH Key 인증이 필요하며, Public 전환 시 인증 없이 즉시 복제됩니다)
 git clone https://github.com/rhkim77/gemini-enterprise-adk-lab.git
 cd gemini-enterprise-adk-lab
 
