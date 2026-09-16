@@ -1,12 +1,14 @@
-# Cymbal Enterprise AI Hub: Gemini Enterprise 기반 Google ADK 2.0 엔터프라이즈 에이전트 구축 및 연동 가이드
+# Cymbal Enterprise AI Hub: Gemini Enterprise 기반 Google ADK 2.0 엔터프라이즈 에이전트 구축 및 연동 가이드 (v2.1.0 — Rev. 2026.09.16)
 
 > 🇰🇷 **한국어 기본 문서 (Current)** | 🇺🇸 **[English Version (README_EN.md)](README_EN.md)**
 
 ![Lab Banner](https://img.shields.io/badge/Google_Cloud-Enterprise_AI_Hub-4285F4?style=for-the-badge&logo=google-cloud)
 ![ADK Version](https://img.shields.io/badge/Google_ADK-2.8.0-34A853?style=for-the-badge)
 ![Gemini Enterprise](https://img.shields.io/badge/Gemini_Enterprise-A2A_%26_Agent_Engine-FBBC04?style=for-the-badge)
+![Revision](https://img.shields.io/badge/Revision-v2.1.0_(2026.09.16)-8E24AA?style=for-the-badge)
 
 * **프로젝트 명칭**: `Cymbal Enterprise AI Hub` (엔터프라이즈 FinOps 및 IT 통합 코디네이터 에이전트)
+* **리비전 정보 (Revision)**: `v2.1.0` (`Rev. 2026-09-16` — ADK 2.0 `InMemoryRunner`, OAuth 2.0 Delegation & Bilingual Cosine RAG 반영)
 * **소요 시간**: 약 2시간 (총 5개 모듈 구성)
 * **난이도**: 중급 / 고급 (Intermediate / Advanced)
 * **아키텍처 레퍼런스**: [hajekim/build-with-gemini-day1-agent](https://github.com/hajekim/build-with-gemini-day1-agent)의 모듈형 아키텍처 및 Dual-Contract 서빙 패턴 계승 (`[확인됨 / Verified]`)

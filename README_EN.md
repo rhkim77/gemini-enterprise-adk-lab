@@ -1,11 +1,13 @@
-# Cymbal Enterprise AI Hub: Building & Registering an Enterprise ADK 2.0 Agent in Gemini Enterprise (English Version)
+# Cymbal Enterprise AI Hub: Building & Registering an Enterprise ADK 2.0 Agent in Gemini Enterprise (v2.1.0 — Rev. 2026.09.16)
 
 > 🇰🇷 **[한국어 기본 문서 보기 (README.md)](README.md)** | 🇺🇸 **English Version (Current)**
 
-![Lab Banner](https://img.shields.io/badge/Google_Cloud-Skills_Boost_Lab-4285F4?style=for-the-badge&logo=google-cloud)
+![Lab Banner](https://img.shields.io/badge/Google_Cloud-Enterprise_AI_Hub-4285F4?style=for-the-badge&logo=google-cloud)
 ![ADK Version](https://img.shields.io/badge/Google_ADK-2.8.0-34A853?style=for-the-badge)
 ![Gemini Enterprise](https://img.shields.io/badge/Gemini_Enterprise-A2A_%26_Agent_Engine-FBBC04?style=for-the-badge)
+![Revision](https://img.shields.io/badge/Revision-v2.1.0_(2026.09.16)-8E24AA?style=for-the-badge)
 
+* **Revision**: `v2.1.0` (`Rev. 2026-09-16` — Genuine ADK 2.0 `InMemoryRunner`, OAuth 2.0 Delegation & Bilingual Cosine RAG)
 * **Duration**: 2 Hours (120 Minutes)
 * **Level**: Intermediate / Advanced
 * **Lab Format**: Hands-on Cloud Skills Lab (Enterprise Production Architecture)
