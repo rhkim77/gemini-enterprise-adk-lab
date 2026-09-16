@@ -117,15 +117,18 @@ flowchart TB
 
 ---
 
-## 📊 3.5 게이트웨이별 엔터프라이즈 실전 테스트 데이터셋 (총 100건 내장)
+## 📊 3.5 게이트웨이별 엔터프라이즈 실전 테스트 데이터셋 개요 (총 100건 내장 및 BigQuery 자동 적재)
 
-각 게이트웨이의 NL2SQL 정확도, 인접 청크 윈도우 스티칭(`N-1 ~ N+1`), 그리고 2PC HITL 거버넌스를 충분히 검증할 수 있도록 **`data/` 디렉토리 및 BigQuery 시딩 스크립트(`scripts/seed_bigquery.py`)에 게이트웨이당 30건 이상(총 100건)의 엔터프라이즈 데이터셋**이 기본 포함되어 있습니다 (`[확인됨 / Verified: scripts/generate_datasets.py]`).
+본 프로젝트는 에이전트의 NL2SQL 수식 정확도, 비정형 문서의 인접 청크 윈도우 스티칭(`N-1 ~ N+1`), 그리고 인프라 변경에 대한 2-Phase Commit(2PC) 거버넌스를 실제 엔터프라이즈 환경과 동일한 수준으로 검증할 수 있도록 **`data/` 디렉토리 내에 총 100건(게이트웨이당 30건 이상)의 실전 테스트 데이터셋**을 기본 내장하고 있습니다. 실습 환경 초기화 스크립트(`scripts/setup_environment.sh` 내 `scripts/seed_bigquery.py`)를 실행하면 활성 Google Cloud 프로젝트를 자동으로 감지하여, 해당 JSON 데이터셋 100건을 **BigQuery `enterprise_finops_gold` 데이터셋 산하 3개 테이블에 100% 자동 적재(Seeding)하고 SQL 검증 쿼리까지 수행**합니다 (`[확인됨 / Verified: scripts/seed_bigquery.py]`).
 
-| 게이트웨이 | 데이터셋 파일 경로 | 레코드 수 | 데이터 구성 및 주요 테스트 가능 항목 |
-| :--- | :--- | :---: | :--- |
-| **Gateway 1 (FinOps SQL)** | [`data/finops_billing_ledger.json`](data/finops_billing_ledger.json) | **32건** | • **8개 엔터프라이즈 부서**(AI Research, Data Platform, FinTech Security 등) 산하 **32개 GCP 프로젝트(`PROJ-AI-PROD-01` ~ `PROJ-OPS-MON-32`)**<br/>• 표준 소진율(`burn_rate_pct`), 유휴 GPU 낭비 비용(`idle_gpu_waste_usd`), 프로젝트/부서별 집계 및 `CRITICAL_OVERRUN` 필터링 지원 |
-| **Gateway 2 (Policy RAG)** | [`data/it_security_policy_chunks.json`](data/it_security_policy_chunks.json) | **36건** | • **12대 엔터프라이즈 보안/운영 규정**(`SEC-POL-2026-FW`, `FIN-POL-2026-GPU`, `NET-POL-2026-PSCI`, `IAM-POL-2026-OAUTH`, `DATA-POL-2026-DLP`, `SEC-POL-2026-CMEK`, `DB-POL-2026-SPANNER`, `K8S-POL-2026-GKE`, `API-POL-2026-APIGEE`, `DR-POL-2026-BCP`, `AI-POL-2026-ADK`, `LOG-POL-2026-SIEM`)<br/>• 각 규정당 **3개의 연속 청크(`Chunk 1: 사전 안전 점검`, `Chunk 2: 실행 SOP`, `Chunk 3: 감사 및 2PC 롤백`) = 총 36개 청크**로 구성되어 완벽한 윈도우 스티칭 테스트 가능 |
-| **Gateway 3 (ITSM Action)** | [`data/it_servicedesk_incidents.json`](data/it_servicedesk_incidents.json) | **32건** | • **32건의 실시간 IT 서비스 데스크 인시던트(`INC-2026-88401` ~ `INC-2026-88432`)**<br/>• `P1_CRITICAL` 장애 필터링, 특정 티켓/프로젝트별 상태 조회, 신규 `FIREWALL_OPEN` / `GPU_QUOTA_INCREASE` 요청 시 2PC 락(`lock:user:{id}:mutation`) 및 `PENDING_HITL_APPROVAL` 생성 검증 |
+* **Gateway 1 — 정형 FinOps 청구 원장 데이터셋 (`data/finops_billing_ledger.json` ➔ BigQuery `cloud_billing_export` 테이블, 총 32건)**
+  AI Research, Data Platform, FinTech Security, Core Infrastructure 등 **8개 핵심 엔터프라이즈 부서 산하 32개 GCP 프로젝트(`PROJ-AI-PROD-01` ~ `PROJ-OPS-MON-32`)**의 월간 예산, 당월 실시간 지출액, 표준 비즈니스 용어사전 공식이 적용된 예산 소진율(`burn_rate_pct`), 그리고 유휴 A100/H100 GPU 낭비 비용(`idle_gpu_waste_usd`) 데이터를 포함합니다. 이를 통해 개별 프로젝트 단건 조회뿐만 아니라 부서별 예산 집계, `CRITICAL_OVERRUN`(예산 초과) 프로젝트 필터링 등 다양한 GoogleSQL 분석 질의를 즉시 테스트할 수 있습니다.
+
+* **Gateway 2 — 비정형 IT 보안 및 인프라 규정 데이터셋 (`data/it_security_policy_chunks.json` ➔ BigQuery `it_security_policy_embeddings` 테이블, 총 36건)**
+  방화벽 포트 개방(`SEC-POL-2026-FW`), GPU 쿼터 거버넌스(`FIN-POL-2026-GPU`), Private Service Connect 인터페이스(`NET-POL-2026-PSCI`), OAuth 2.0 신원 위임(`IAM-POL-2026-OAUTH`), Model Armor PII 마스킹(`DATA-POL-2026-DLP`), CMEK 암호화(`SEC-POL-2026-CMEK`), Spanner 멀티리전(`DB-POL-2026-SPANNER`), GKE Autopilot(`K8S-POL-2026-GKE`), Apigee mTLS(`API-POL-2026-APIGEE`), 재해복구(`DR-POL-2026-BCP`), ADK 에이전트 가드레일(`AI-POL-2026-ADK`), Chronicle SIEM 감사(`LOG-POL-2026-SIEM`) 등 **총 12대 엔터프라이즈 표준 운영 절차(SOP)**로 구성되어 있습니다. 각 규정은 단일 청크 검색 시 발생하는 문맥 단절을 방지하기 위해 **`Chunk 1(사전 안전 점검)` — `Chunk 2(핵심 실행 절차)` — `Chunk 3(사후 감사 및 2PC 롤백)`의 3개 연속 청크(총 36개 청크)**로 분할 저장되어 있으며, BigQuery 조회 시 인접 윈도우 스티칭(`N-1 ~ N+1`)과 GCS HTTPS 원본 문서 링크 제공 기능을 완벽히 검증할 수 있습니다.
+
+* **Gateway 3 — 실시간 IT 서비스 데스크 인시던트 데이터셋 (`data/it_servicedesk_incidents.json` ➔ BigQuery `itsm_realtime_incidents` 테이블, 총 32건)**
+  VPC-SC 경계 네트워크 차단, GPU 쿼터 동결, DLP 개인정보 스캔, Cloud Run 오토스케일링 경고 등 엔터프라이즈 인프라 전반에서 발생한 **32건의 실시간 서비스 데스크 인시던트(`INC-2026-88401` ~ `INC-2026-88432`)** 데이터를 담고 있습니다. 각 레코드에는 장애 심각도(`P1_CRITICAL` 등), 담당 SecOps/SRE 팀, 관련 보안 정책 코드, 그리고 중복 실행 방지용 2PC 멱등성 락(`lock:user:{project_id}:mutation`) 정보가 포함되어 있어, 현행 장애 현황 조회 및 신규 인프라 변경 티켓 발행(`PENDING_HITL_APPROVAL`) 시나리오를 End-to-End로 테스트할 수 있습니다.
 
 ---
 

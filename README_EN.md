@@ -102,6 +102,21 @@ flowchart TB
 
 ---
 
+## 📊 Enterprise Realistic Test Datasets (100 Records & Automatic BigQuery Seeding)
+
+To rigorously validate NL2SQL formula accuracy, adjacent chunk window stitching (`N-1 ~ N+1`), and 2-Phase Commit (2PC) governance, this repository includes **100 realistic enterprise test records across the 3 gateways** in the `data/` directory. Running `./scripts/setup_environment.sh` (or `python3 scripts/seed_bigquery.py`) automatically detects your active Google Cloud project, creates the `enterprise_finops_gold` dataset, and seeds all 100 JSON records into live BigQuery tables with automated SQL verification (`[Verified: scripts/seed_bigquery.py]`).
+
+* **Gateway 1 — Structured FinOps Billing Ledger (`data/finops_billing_ledger.json` ➔ BigQuery `cloud_billing_export`, 32 Records)**
+  Contains 32 enterprise GCP projects (`PROJ-AI-PROD-01` through `PROJ-OPS-MON-32`) across 8 departments (AI Research, Data Platform, FinTech Security, Core Infrastructure, etc.). Each record includes monthly budgets, current spend, standardized burn rate percentages (`burn_rate_pct`), and idle A100/H100 GPU waste costs (`idle_gpu_waste_usd`), supporting both single-project lookups and multi-project/department SQL aggregations.
+
+* **Gateway 2 — IT Security & Infrastructure Policies (`data/it_security_policy_chunks.json` ➔ BigQuery `it_security_policy_embeddings`, 36 Records)**
+  Covers 12 corporate standard operating procedures (`SEC-POL-2026-FW`, `FIN-POL-2026-GPU`, `NET-POL-2026-PSCI`, `IAM-POL-2026-OAUTH`, `DATA-POL-2026-DLP`, `SEC-POL-2026-CMEK`, `DB-POL-2026-SPANNER`, `K8S-POL-2026-GKE`, `API-POL-2026-APIGEE`, `DR-POL-2026-BCP`, `AI-POL-2026-ADK`, `LOG-POL-2026-SIEM`). Each policy is structured into **3 contiguous chunks (`Chunk 1: Pre-Requisite Safety Check`, `Chunk 2: Execution SOP`, `Chunk 3: Audit & 2PC Rollback`) = 36 total chunks**, enabling full verification of adjacent window stitching (`N-1 ~ N+1`) and GCS HTTPS source citations.
+
+* **Gateway 3 — Real-Time IT Service Desk Incidents (`data/it_servicedesk_incidents.json` ➔ BigQuery `itsm_realtime_incidents`, 32 Records)**
+  Provides 32 active infrastructure incidents (`INC-2026-88401` through `INC-2026-88432`) spanning VPC-SC egress blocks, GPU quota freezes, DLP scans, and Cloud Run autoscaling alerts. Each record includes severity levels (`P1_CRITICAL`), assigned SecOps/SRE teams, policy references, and 2PC idempotency locks (`lock:user:{project_id}:mutation`) to test both live incident telemetry and HITL approval ticket creation (`PENDING_HITL_APPROVAL`).
+
+---
+
 ## ⚡ 2-Minute Quickstart
 
 ```bash
