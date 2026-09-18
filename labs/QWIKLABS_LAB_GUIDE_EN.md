@@ -121,9 +121,47 @@ In this task, you verify Git and Google Cloud SDK (`gcloud`) credentials, clone 
 | :--- |
 | `chmod +x scripts/setup_environment.sh`<br>`./scripts/setup_environment.sh` |
 
-| Output (do not copy) |
-| :--- |
-| `  -> [OK] cloud_billing_export seeded: 32 rows`<br>`  -> [OK] it_security_policy_embeddings seeded: 36 rows`<br>`  -> [OK] itsm_realtime_incidents seeded: 32 rows`<br>`  -> [SUCCESS] Total 100 enterprise records seeded and verified in BigQuery!` |
+**Output (do not copy)**
+
+```text
+============================================================================
+🔍 [Preflight] Checking Google Cloud SDK (gcloud) & Authentication...
+============================================================================
+✅ Google Cloud SDK detected: Google Cloud SDK 5xx.0.0 (/usr/lib/google-cloud-sdk/bin/gcloud)
+✅ jq detected: jq-1.7
+🔧 Auto-configured .env with active GCP Project ID: qwiklabs-gcp-xx-xxxxxxxxxxxx
+============================================================================
+🚀 Starting One-Click Bootstrap for Project: qwiklabs-gcp-xx-xxxxxxxxxxxx (us-central1)
+============================================================================
+[Step 1/4] Enabling Google Cloud APIs (BigQuery, Vertex AI, Discovery Engine, Cloud Run)...
+[Step 2/4] Verifying Python Virtual Environment (.venv)...
+  📦 Installing dependencies into .venv (uv if available, otherwise python3 -m venv + pip)...
+[Step 3/4] Creating BigQuery Datasets & Seeding 100 Enterprise JSON Records into BigQuery...
+🎯 Target Google Cloud Project: `qwiklabs-gcp-xx-xxxxxxxxxxxx` | Dataset: `enterprise_finops_gold`
+  ✅ [Gateway 1] Seeded 32 rows into BigQuery table `qwiklabs-gcp-xx-xxxxxxxxxxxx.enterprise_finops_gold.cloud_billing_export`
+  ✅ [Gateway 2] Seeded 36 rows into BigQuery table `qwiklabs-gcp-xx-xxxxxxxxxxxx.enterprise_finops_gold.it_security_policy_embeddings`
+  ✅ [Gateway 3] Seeded 32 rows into BigQuery table `qwiklabs-gcp-xx-xxxxxxxxxxxx.enterprise_finops_gold.itsm_realtime_incidents`
+
+📊 [BigQuery Live Table Verification Summary]
+  • 1_cloud_billing_export              : 32 rows in BigQuery
+  • 2_it_security_policy_embeddings     : 36 rows in BigQuery
+  • 3_itsm_realtime_incidents           : 32 rows in BigQuery
+  🎉 Total BigQuery Records Verified: 100 / 100 rows (100% Match)
+
+[Step 4/4] Running Automated Verification Suite (validate_agent.py)...
+📊 VALIDATION SUMMARY: 10 PASSED, 0 FAILED (TOTAL: 10 TESTS | 100 DATA RECORDS)
+============================================================================
+✅ Environment Bootstrap, BigQuery 100-Record Seeding & Verification Complete!
+============================================================================
+```
+
+> **What to look for**: the two lines that matter here are
+> `🎉 Total BigQuery Records Verified: 100 / 100 rows (100% Match)` and
+> `📊 VALIDATION SUMMARY: 10 PASSED, 0 FAILED`.
+> If fewer than 100 records were seeded, or any check reports `FAILED`, every task from
+> Task 2 onward will fail — stop here and work through `labs/TROUBLESHOOTING.md` first.
+> (Lines prefixed `⚠️` are non-fatal, e.g. a missing `jq`, and do not block progress.)
+
 
 ### Sub-Task 1.4. Verify the 100 Seeded Records in BigQuery
 
@@ -360,9 +398,43 @@ In this task, you containerize and deploy the `Cymbal Enterprise AI Hub` runtime
 | :--- |
 | `chmod +x scripts/deploy_cloud_run.sh`<br>`./scripts/deploy_cloud_run.sh` |
 
-| Output (do not copy) |
-| :--- |
-| `Deploying container to Cloud Run service [enterprise-hub-agent]... Done.`<br>`Service URL: https://enterprise-hub-agent-xxxxxxxxxx-uc.a.run.app` |
+**Output (do not copy)**
+
+```text
+======================================================================
+ [Cymbal Enterprise AI Hub] Cloud Run deployment
+======================================================================
+  -> Project ID : qwiklabs-gcp-xx-xxxxxxxxxxxx
+  -> Region     : us-central1
+  -> Service    : enterprise-hub-agent
+  -> Image      : gcr.io/qwiklabs-gcp-xx-xxxxxxxxxxxx/enterprise-hub-agent:latest
+======================================================================
+[1/4] Building the container image with Cloud Build (this takes 3-4 minutes)...
+ID        CREATE_TIME   DURATION  SOURCE   IMAGES   STATUS
+xxxxxxxx  2026-...      3M21S     gs://... gcr.io.. SUCCESS
+[2/4] Deploying to Cloud Run...
+Service [enterprise-hub-agent] revision [enterprise-hub-agent-00001-abc] has been deployed and is serving 100 percent of traffic.
+[3/4] Updating APP_URL so the Agent Card advertises its public address...
+[4/4] Running the deep health probe against the deployed revision...
+======================================================================
+Service URL: https://enterprise-hub-agent-xxxxxxxxxx-uc.a.run.app
+Health     : healthy
+Engine     : ADK_2.0_RUNNER (gemini-2.5-flash)
+======================================================================
+✅ Deployment verified — the deployed revision is serving through the real ADK runner.
+   Agent Card: https://enterprise-hub-agent-xxxxxxxxxx-uc.a.run.app/.well-known/agent-card.json
+
+   Export this for Task 5:
+     export SERVICE_URL="https://enterprise-hub-agent-xxxxxxxxxx-uc.a.run.app"
+```
+
+
+> **What to look for**: the final `Engine` line is the only pass/fail signal for this step.
+> If it reads `DETERMINISTIC_HYBRID_ROUTER` instead of `ADK_2.0_RUNNER (gemini-2.5-flash)`,
+> the container started but ADK is not executing — a **degraded** deployment.
+> The script prints the exact `gcloud run services update` repair command in that case;
+> run it, then see section 1 of `labs/TROUBLESHOOTING.md`.
+
 
 ### Sub-Task 4.2. Verify the Live Cloud Run HTTPS A2A Endpoint
 
@@ -391,6 +463,14 @@ Deployed Cloud Run URL: https://enterprise-hub-agent-xxxxxxxxxx-uc.a.run.app
 }
 ```
 
+
+> **Optional (Track B — Vertex AI Agent Engine)**: to deploy to the fully managed Reasoning
+> Engine runtime instead of Cloud Run, run `.venv/bin/python3 scripts/deploy_agent_engine.py`
+> (add `--dry-run` first to preview). It prints a
+> `projects/{PROJECT_NUMBER}/locations/us-central1/reasoningEngines/{ENGINE_ID}` resource name,
+> which is what you paste into the **Custom agent via Agent Engine** registration form.
+> Tear it down afterwards with `--delete <resource_name>` — managed runtimes bill while idle.
+
 > ✅ **Check my progress**
 > **Click Check my progress to verify the objective.**
 
@@ -408,9 +488,31 @@ In this task, you validate the Discovery Engine `serverSideOauth2` authorization
 | :--- |
 | `.venv/bin/python3 scripts/verify_lab04_completion.py` |
 
-| Output (do not copy) |
-| :--- |
-| `[PASS] 1. A2A Agent Card Schema Compliance (defaultInputModes/defaultOutputModes/skills)`<br>`[PASS] 2. OAuth 2.0 Redirect URI Specification Verified (https://vertexaisearch.cloud.google.com/oauth-redirect)`<br>`[PASS] 3. Dual-Contract Endpoints (/a2a/enterprise_hub_agent & /api/reasoning_engine) Verified`<br>`[PASS] 4. End-to-End OAuth Token Forwarding & HITL Audit Log Verified`<br>`🎉 Lab 04 Verification PASSED! Ready for Gemini Enterprise Portal!` |
+**Output (do not copy)**
+
+```text
+====================================================================================
+ [Lab 04 Completion Check] Gemini Enterprise & OAuth 2.0 Readiness
+ Target: https://enterprise-hub-agent-xxxxxxxxxx-uc.a.run.app
+====================================================================================
+[PASS] 1. A2A Agent Card Schema Compliance (defaultInputModes/defaultOutputModes/skills)
+       -> 3 skills, text/plain I/O, public HTTPS RPC url
+[PASS] 2. OAuth 2.0 Redirect URI Specification
+       -> https://vertexaisearch.cloud.google.com/oauth-redirect
+[PASS] 3. Dual-Contract Endpoints (/a2a/enterprise_hub_agent & /api/reasoning_engine)
+       -> /a2a/enterprise_hub_agent & /api/reasoning_engine
+[PASS] 4. End-to-End OAuth Token Forwarding & 2PC HITL Audit
+       -> oauth2_delegated=true, PENDING_HITL_APPROVAL enforced for lab-verifier@cymbal.enterprise
+====================================================================================
+🎉 Lab 04 Verification PASSED! Ready for the Gemini Enterprise portal.
+```
+
+
+> **Note**: the script targets `$SERVICE_URL` when that variable is set, and falls back to
+> `http://localhost:8000` otherwise. If you ran `export SERVICE_URL=...` in Sub-Task 4.2,
+> it validates the deployed service as shown above.
+> All four checks must report `[PASS]` before you register the agent in the Gemini Enterprise console.
+
 
 ### Sub-Task 5.2. Register the Custom Agent in Gemini Enterprise Console
 

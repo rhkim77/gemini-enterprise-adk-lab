@@ -5,7 +5,12 @@
 google-adk>=2.8.0,<3.0.0
 mcp>=1.30.0,<2.0.0
 google-genai>=2.23.0,<3.0.0
-google-cloud-aiplatform>=1.70.0
+# The [agent_engines,adk] extras are REQUIRED for Track B (Vertex AI Agent
+# Engine). They pull in cloudpickle (used to serialize the AdkApp) and the
+# opentelemetry exporters that AdkApp(enable_tracing=True) needs. Installing
+# the bare package makes scripts/deploy_agent_engine.py fail at create() time
+# rather than at import time, which is far harder to diagnose.
+google-cloud-aiplatform[agent_engines,adk]>=1.82.0
 google-cloud-bigquery>=3.25.0
 
 # FastAPI Dual-Contract Serving & A2A Protocol
