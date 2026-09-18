@@ -1,6 +1,7 @@
 # Cymbal Enterprise AI Hub: Building & Registering an Enterprise ADK 2.0 Agent in Gemini Enterprise (v2.3.0 — Rev. 2026.09.16)
 
 > 🇰🇷 **[한국어 기본 문서 보기 (README.md)](README.md)** | 🇺🇸 **English Version (Current)**
+> 🎓 **CE Qwiklabs Official Single-Page Lab Guide (`go/ceqwiklabs-lab-guide-template`)**: **[🇺🇸 English Qwiklabs Guide (labs/QWIKLABS_LAB_GUIDE_EN.md)](labs/QWIKLABS_LAB_GUIDE_EN.md)** | **[🇰🇷 Korean Qwiklabs Guide (labs/QWIKLABS_LAB_GUIDE.md)](labs/QWIKLABS_LAB_GUIDE.md)** | **[`qwiklabs.yaml`](qwiklabs.yaml)**
 
 ![Lab Banner](https://img.shields.io/badge/Google_Cloud-Enterprise_AI_Hub-4285F4?style=for-the-badge&logo=google-cloud)
 ![ADK Version](https://img.shields.io/badge/Google_ADK-2.8.0-34A853?style=for-the-badge)

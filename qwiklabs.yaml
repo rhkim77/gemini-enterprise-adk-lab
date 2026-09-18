@@ -1,0 +1,67 @@
+# CE Qwiklabs Custom Lab Definition (go/develop-a-lab & go/ceqwiklabs-lab-guide-template)
+schema_version: 2
+title: "Cymbal Enterprise AI Hub: Building and Integrating a Google ADK 2.0 Enterprise Agent with Gemini Enterprise"
+description: "Build an enterprise Coordinator Agent with Google ADK 2.0, seed 100 records into BigQuery (enterprise_finops_gold), expose a Dual-Contract A2A + Reasoning Engine FastAPI runtime, deploy to Cloud Run, and integrate with Gemini Enterprise OAuth 2.0."
+default_locale: ko
+locales:
+  - ko
+  - en
+duration: 120
+max_duration: 150
+credits: 1
+level: intermediate
+tags:
+  - gemini-enterprise
+  - google-adk
+  - a2a
+  - bigquery
+  - cloud-run
+  - vertex-ai
+
+instruction:
+  type: markdown
+  files:
+    ko: labs/QWIKLABS_LAB_GUIDE.md
+    en: labs/QWIKLABS_LAB_GUIDE_EN.md
+
+environment:
+  resources:
+    - type: gcp_project
+      id: project_0
+      region: us-central1
+      zone: us-central1-a
+      apis:
+        - aiplatform.googleapis.com
+        - bigquery.googleapis.com
+        - run.googleapis.com
+        - cloudbuild.googleapis.com
+        - artifactregistry.googleapis.com
+        - discoveryengine.googleapis.com
+        - cloudresourcemanager.googleapis.com
+  student_visible_outputs:
+    - label: "GCP Project ID"
+      reference: project_0.project_id
+    - label: "Default Region"
+      reference: project_0.region
+
+assessments:
+  - id: task_1_bigquery_seeded
+    title: "Task 1: Bootstrap Lab Environment and Seed 100 Enterprise Records in BigQuery"
+    points: 20
+    description: "Verify that BigQuery dataset enterprise_finops_gold contains cloud_billing_export (32), it_security_policy_embeddings (36), and itsm_realtime_incidents (32)."
+  - id: task_2_adk_agent_verified
+    title: "Task 2: Validate Google ADK 2.0 Coordinator Agent & 3 Tool Gateways"
+    points: 20
+    description: "Verify that scripts/validate_agent.py passes all 10 automated checks."
+  - id: task_3_dual_contract_studio
+    title: "Task 3: Launch Dual-Contract Runtime & Verify A2A Agent Card"
+    points: 20
+    description: "Verify that /healthz?deep=true and /.well-known/agent-card.json respond with valid A2A schemas."
+  - id: task_4_cloud_run_deployed
+    title: "Task 4: Deploy ADK Agent Container to Google Cloud Run"
+    points: 20
+    description: "Verify that Cloud Run service enterprise-hub-agent is deployed and READY in us-central1."
+  - id: task_5_gemini_enterprise_oauth
+    title: "Task 5: Configure OAuth 2.0 Delegation and Verify Gemini Enterprise Readiness"
+    points: 20
+    description: "Verify that scripts/verify_lab04_completion.py passes all OAuth 2.0 and Dual-Contract integration checks."
