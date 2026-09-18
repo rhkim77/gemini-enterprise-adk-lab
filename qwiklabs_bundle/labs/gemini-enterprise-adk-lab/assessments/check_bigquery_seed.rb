@@ -18,10 +18,16 @@ def check_bigquery_seed(handles:, maximum_score:, resources:)
   bq = handles['primary_project.BigqueryV2']
   raise 'Invalid handle' if bq.nil?
 
-  project_id = bq.request_options.quota_project || resources['primary_project']['project_id']
+  # The GCP handle exposes the student's project directly. `resources` only
+  # carries resource references the author declared on the step in qwiklabs.yaml,
+  # and the canonical v2 example never reads it, so do not depend on it here.
+  project_id = bq.project
 
+  # freeze_args: true is passed to every Google API call per
+  # go/activity-tracking-best-practices. Calls still succeed without it, but it
+  # is the documented convention for graders.
   begin
-    bq.get_dataset(project_id, DATASET_ID)
+    bq.get_dataset(project_id, DATASET_ID, freeze_args: true)
   rescue Google::Apis::ClientError
     return {
       score: 0,
@@ -30,7 +36,7 @@ def check_bigquery_seed(handles:, maximum_score:, resources:)
     }
   end
 
-  tables = (bq.list_tables(project_id, DATASET_ID)&.tables || []).map do |t|
+  tables = (bq.list_tables(project_id, DATASET_ID, freeze_args: true)&.tables || []).map do |t|
     t.table_reference.table_id
   end
 
@@ -45,7 +51,7 @@ def check_bigquery_seed(handles:, maximum_score:, resources:)
 
   mismatched = []
   EXPECTED_ROWS.each do |table_id, expected|
-    actual = bq.get_table(project_id, DATASET_ID, table_id).num_rows.to_i
+    actual = bq.get_table(project_id, DATASET_ID, table_id, freeze_args: true).num_rows.to_i
     mismatched << "#{table_id}=#{actual}(expected #{expected})" if actual != expected
   end
 

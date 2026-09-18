@@ -16,14 +16,29 @@ def check_cloud_run_service(handles:, maximum_score:, resources:)
   run = handles['primary_project.RunV1']
   raise 'Invalid handle' if run.nil?
 
-  project_id = resources['primary_project']['project_id']
+  # The GCP handle exposes the student's project directly; `resources` only
+  # carries references explicitly declared on the step in qwiklabs.yaml.
+  project_id = run.project
   parent = "projects/#{project_id}/locations/#{REGION}"
 
+  # Two call shapes are attempted because the Cloud Run Admin API exposes both a
+  # Knative-style namespaces/ surface and an AIP-style projects/locations/ one.
+  # The Knative surface is documented as requiring the regional endpoint
+  # (https://<region>-run.googleapis.com/); if the handle is built against the
+  # global endpoint it can return 404 here, in which case the second call is the
+  # one that succeeds.
+  #
+  # freeze_args: true is the documented convention for Google API calls in
+  # graders (go/activity-tracking-best-practices).
   begin
-    service = run.get_namespace_service("namespaces/#{project_id}/services/#{SERVICE_NAME}")
+    service = run.get_namespace_service(
+      "namespaces/#{project_id}/services/#{SERVICE_NAME}", freeze_args: true
+    )
   rescue Google::Apis::ClientError
     begin
-      service = run.get_project_location_service("#{parent}/services/#{SERVICE_NAME}")
+      service = run.get_project_location_service(
+        "#{parent}/services/#{SERVICE_NAME}", freeze_args: true
+      )
     rescue Google::Apis::ClientError
       return {
         score: 0,

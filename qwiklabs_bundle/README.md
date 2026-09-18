@@ -26,14 +26,31 @@ it be copied across verbatim.
 
 ## Publishing
 
+The CE (Explore / Labs for Sales) content library is
+**`github.com/CloudVLab/gcp-ce-content`** — "Special content only on
+explore.qwiklabs.com" ([go/la-ld-onboarding][onboard]). Access is granted
+through the Sphinx group `qwiklabs_cloudvlabgcp-ce-content_editors`, and the
+author needs Explore Creator rights via [go/preregister][prereg].
+
+> [!IMPORTANT]
+> A v2 bundle **must be published through Alexandria** or it will not work in
+> production ([go/authoring-ql-md][authmd], [go/publishing-qwiklabs][pub]).
+
 ```bash
 # 1. Make sure the bundle instructions match the authored guides.
 ./scripts/sync_qwiklabs_bundle.sh --check
 
 # 2. Copy the lab directory into the CE content library repository.
 cp -r qwiklabs_bundle/labs/gemini-enterprise-adk-lab \
-      <content-library-repo>/labs/
+      <path-to>/gcp-ce-content/labs/
+
+# 3. Publish through Alexandria (see go/publishing-qwiklabs).
 ```
+
+[onboard]: http://go/la-ld-onboarding
+[prereg]: http://go/preregister
+[authmd]: http://go/authoring-ql-md
+[pub]: http://go/publishing-qwiklabs
 
 ## Layout
 
@@ -55,8 +72,19 @@ labs/gemini-enterprise-adk-lab/
 
 ## Why only two checkpoints are scored
 
-Activity Tracking graders are Ruby methods that call Google APIs; they can only
-observe **cloud-side state**. Mapping that against the five lab tasks:
+Activity Tracking graders are Ruby methods that run sandboxed (NsJail, on Cloud
+Run) and call Google APIs. They can only observe **cloud-side state**: shelling
+out via `curl`, backticks or `system()` is prohibited, and the filesystem is
+read-only ([go/activity-tracking-best-practices][atbp]). Nothing in the
+student's Cloud Shell or on their laptop is reachable.
+
+That is allowed by policy — the Pre-Launch Checklist asks only that
+"each objective is linked to activity tracking (AT) **whenever possible**"
+([go/lab-architect-docs/checklists-templates][chk]) — so tasks that leave no
+cloud artifact simply are not scored. Mapping that against the five lab tasks:
+
+[atbp]: http://go/activity-tracking-best-practices
+[chk]: http://go/lab-architect-docs/checklists-templates
 
 | Task | Leaves a cloud artifact? | Scored |
 | :--- | :--- | :--- |
@@ -76,15 +104,86 @@ Tasks 2, 3 and 5 are instead taught and **self-verified** in the instructions:
 Both print an explicit PASS/FAIL summary, so the student still gets a hard
 signal — it simply is not worth Qwiklabs points.
 
-> [!IMPORTANT]
-> Two items remain unverified and must be confirmed before submission:
-> 1. `primary_project.RunV1` — the exact Cloud Run service handle name is
->    inferred from the `Google::Apis::RunV1` naming convention, not confirmed
->    against a published list of allowed services.
-> 2. Whether `gcp_pt` (Provisioned Throughput) is required. Gemini Enterprise in
->    a Qwiklabs project needs a PT allocation (`go/qwiklabs-pt`) plus a capacity
->    request (`go/lfs-capacity-request`); without it Task 5 fails with
->    `Quota has been exceeded`. The current `gcp_project` resource uses the
->    default variant.
+### Choosing the service handle names
+
+Activity Tracking service names are **not an enum**. `teacups.proto` declares
+`string service_name = 2;`, and the allowlist lives outside google3, in
+`ALL_SUPPORTED_SERVICES` in `lib/ice/gcp/gcp_handle.rb` in the
+`Qwiklabs/qwiklab-website` repository
+([go/qwiklabs-docs/runtime/activity_tracking/procedures/adding_apis][addapis]).
+
+The name is the **Ruby API module name**, i.e. the `<X>` in
+`Google::Apis::<X>::...Service` — for example `Google::Apis::FormsV1::FormsService`
+is registered as `FormsV1`. Applying that rule to Cloud Run gives `RunV1` /
+`RunV2`, since the class is `Google::Apis::RunV1::CloudRunService`. **There is
+no `CloudRunV1` module**, so that spelling would silently fail.
+
+> [!WARNING]
+> Unverified items — confirm before submitting.
+>
+> 1. **`primary_project.RunV1` registration.** The *spelling* follows the
+>    documented naming rule, but whether Cloud Run is actually present in
+>    `ALL_SUPPORTED_SERVICES` could not be confirmed (the repo is private and no
+>    internal doc publishes the list). Verify by either: (a) opening the
+>    Activity Tracking Editor and searching "Run" in the API/Service dropdown —
+>    that dropdown *is* `ALL_SUPPORTED_SERVICES`; (b) running
+>    `Google::Apis::RunV2::CloudRunService.instance_methods(false).sort` in the
+>    staging lab's "Run One-off Activity Tracking Code" box; or (c) reading
+>    `qwiklab-website/public/gcp_method_info.txt`. If it is absent, request the
+>    addition per [adding_apis][addapis].
+>    Fallbacks if unsupported: grade the deployment through `LoggingV2` audit
+>    logs, or through the Artifact Registry image, or have the student write a
+>    marker object to GCS and check it with `StorageV1`.
+> 2. **Provisioned Throughput.** Gemini Enterprise in a Qwiklabs project needs a
+>    PT allocation ([go/qwiklabs-pt][pt]) plus a capacity request
+>    ([go/lfs-capacity-request][cap]) and the `gcp_pt` project variant; without
+>    it Task 5 fails with `Quota has been exceeded`. This bundle currently uses
+>    the default variant.
+> 3. **`default_locale: ko`** acceptance on CE Qwiklabs is unconfirmed. The
+>    canonical example and the CE authoring workflow both assume
+>    `instructions/en.md` as the base.
+
+
+### Pre-submission smoke test (one command, resolves three unknowns)
+
+The three remaining uncertainties can all be settled in a single run. Launch the
+lab on staging and paste this into **"Run One-off Activity Tracking Code"** —
+the only debugging channel graders have, since they cannot write to disk or
+shell out ([go/activity-tracking-best-practices][atbp]):
+
+```ruby
+def check(handles:, maximum_score:, resources:)
+  bq  = handles['primary_project.BigqueryV2']
+  run = handles['primary_project.RunV1']
+  out = []
+  out << "resources=#{resources.class}:#{resources.inspect}"
+  out << "bq.project=#{bq.project}"
+  out << "run=#{run.class}"
+  begin
+    svc = run.get_namespace_service(
+      "namespaces/#{run.project}/services/enterprise-hub-agent", freeze_args: true
+    )
+    out << "knative_ok=#{svc.status.conditions.map { |c| "#{c.type}=#{c.status}" }.join(',')}"
+  rescue StandardError => e
+    out << "knative_err=#{e.class}: #{e.message}"
+  end
+  { score: 0, message: 'probe', student_message: out.join(' | ') }
+end
+```
+
+Reading the output:
+
+| Observation | Conclusion |
+| :--- | :--- |
+| The code runs at all | `freeze_args: true` is accepted — no `ArgumentError (unknown keyword)` |
+| `run=` prints a class | `RunV1` **is** in `ALL_SUPPORTED_SERVICES` |
+| Handle construction fails | `RunV1` is not registered → request it per [adding_apis][addapis], or fall back to `LoggingV2` / `StorageV1` marker |
+| `knative_ok=Ready=True` | the Knative surface works on whatever endpoint the handle uses |
+| `knative_err=...404` | the global endpoint is in play → the `projects/locations/` fallback in the grader is the path that will run |
+| `resources=` contents | confirms whether `resources` carries anything; the grader deliberately does not depend on it |
+
+[addapis]: http://go/qwiklabs-docs/runtime/activity_tracking/procedures/adding_apis
+[pt]: http://go/qwiklabs-pt
+[cap]: http://go/lfs-capacity-request
 
 [spec]: http://google3/cloud/training/qwiklabs/content_bundle/g3doc/lab-bundle-spec.md
