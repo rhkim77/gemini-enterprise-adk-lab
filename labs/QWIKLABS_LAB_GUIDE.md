@@ -146,7 +146,7 @@ Google Cloud Shell은 개발 도구가 사전 로드된 가상 머신으로, 5GB
 
 | Output (do not copy) |
 | :--- |
-| `GOOGLE_CLOUD_PROJECT=qwiklabs-gcp-xx-xxxxxxxxxxxx`<br>`BQ_FINOPS_DATASET=enterprise_finops_gold` |
+| `GOOGLE_CLOUD_PROJECT="qwiklabs-gcp-xx-xxxxxxxxxxxx"`<br>`BQ_FINOPS_DATASET="enterprise_finops_gold"` |
 
 ### Sub-Task 1.3. 원클릭 부트스트랩 스크립트 실행 (`setup_environment.sh`)
 
@@ -184,11 +184,40 @@ Google Cloud Shell은 개발 도구가 사전 로드된 가상 머신으로, 5GB
 
 ### Sub-Task 2.1. 3대 분리형 도구 게이트웨이 구조 확인
 
-1. 다음 명령어를 실행하여 3대 도구 게이트웨이의 핵심 함수 시그니처와 구현 요약을 확인합니다:
+1. 다음 명령어를 실행하여 3대 도구 게이트웨이의 툴 함수 시그니처 위치를 한 번에 확인합니다:
 
 | Command |
 | :--- |
-| `head -n 25 app/tools/finops_bq_tool.py app/tools/it_policy_rag_tool.py app/tools/it_servicedesk_tool.py` |
+| `grep -n "^def .*_tool" app/tools/*.py` |
+
+| Output (do not copy) |
+| :--- |
+| `app/tools/finops_bq_tool.py:77:def finops_bq_tool(query_or_project_id: str) -> dict:`<br>`app/tools/it_policy_rag_tool.py:154:def it_policy_rag_tool(query: str) -> str:`<br>`app/tools/it_servicedesk_tool.py:106:def it_servicedesk_tool(` |
+
+2. Gateway 1의 시그니처와 **docstring**을 자세히 확인합니다. Google ADK는 이 **docstring 전문을 Gemini Function Calling 스키마의 `description` 필드로 그대로 전달**하므로, 툴의 docstring은 단순 주석이 아니라 **모델이 읽는 유일한 API 명세**입니다:
+
+| Command |
+| :--- |
+| `grep -n -A 12 "^def finops_bq_tool" app/tools/finops_bq_tool.py` |
+
+**Output (do not copy)**
+
+```text
+77:def finops_bq_tool(query_or_project_id: str) -> dict:
+78-    """Queries BigQuery FinOps Gold Ledger (`enterprise_finops_gold.cloud_billing_export`, 32 Projects).
+79-
+80-    Always enforces Knowledge Catalog Business Glossary formulas to eliminate NL2SQL hallucination.
+81-
+82-    Args:
+83-        query_or_project_id: Target GCP Project ID (e.g., 'PROJ-AI-PROD-01' .. 'PROJ-OPS-MON-32'),
+84-            department name (e.g., 'AI Research', 'FinTech Security'), or alert status ('CRITICAL_OVERRUN').
+85-
+86-    Returns:
+87-        dict: Standardized FinOps metrics, burn rate percentage, alert status, dataset count, and executed GoogleSQL.
+88-    """
+```
+
+3. 각 게이트웨이의 역할은 다음과 같습니다:
 
 * **Gateway 1 (`finops_bq_tool.py`)**: BigQuery `cloud_billing_export` 테이블(32건)을 실시간 SQL로 조회하며, LLM이 임의로 공식을 추측하지 못하도록 **Knowledge Catalog 표준 공식(`예산 소진율 % = 당월 지출액 / 월 예산 * 100`)**과 **Plotly 시각화 페이로드**를 함께 반환합니다.
 * **Gateway 2 (`it_policy_rag_tool.py`)**: BigQuery `it_security_policy_embeddings` 테이블(36건)에 대해 코사인 유사도(`>= 0.70`) 검색을 수행하고, 히트된 청크의 **앞뒤 인접 청크(`N-1 ~ N+1`)를 자동 결합(Adjacent Window Stitching)**하여 사전 안전 수칙 누락을 방지합니다. 유사도 `0.70` 미만 도메인 외 질의(예: 에스프레소 머신 수리)는 **인증된 거절 문구(Certified Refusal)**로 즉시 차단합니다.
@@ -200,11 +229,23 @@ Google Cloud Shell은 개발 도구가 사전 로드된 가상 머신으로, 5GB
 
 | Command |
 | :--- |
-| `grep -n -C 5 "enterprise_hub_agent" app/agent.py` |
+| `grep -n -A 6 "^root_agent = Agent(" app/agent.py` |
 
-| Output (do not copy) |
-| :--- |
-| `enterprise_hub_agent = LlmAgent(`<br>`    name="enterprise_hub_agent",`<br>`    model=os.environ.get("ADK_MODEL_NAME", "gemini-2.5-flash"),`<br>`    description="Cymbal Enterprise AI Hub Root Coordinator Agent for Cloud FinOps Analytics, IT Security Policy Vector RAG, and Live ITSM Service Desk Operations.",`<br>`    instruction=SYSTEM_INSTRUCTION,`<br>`    tools=[query_finops_budget_and_burn_rate, search_it_security_policy_rag, manage_it_servicedesk_ticket],` |
+**Output (do not copy)**
+
+```text
+122:root_agent = Agent(
+123-    name="enterprise_hub_agent",
+124-    model=Gemini(model=MODEL, retry_options=retry_cfg),
+125-    instruction=SYSTEM_INSTRUCTION,
+126-    tools=[finops_bq_tool, it_policy_rag_tool, it_servicedesk_tool],
+127-    before_agent_callback=validate_and_update_temporal_cache,
+128-)
+```
+
+> **판독 포인트**: `before_agent_callback`에 바인딩된 함수의 첫 번째 파라미터 이름은 반드시 `callback_context`여야 합니다.
+> ADK 2.x 런타임이 `callback(callback_context=...)` 형태로 **키워드 호출**하기 때문이며, 이름이 다르면 `TypeError`가 발생하고
+> 에이전트가 조용히 결정론적 라우터로 강등됩니다.
 
 ### Sub-Task 2.3. 자동 검증 스위트(`scripts/validate_agent.py`) 실행
 
@@ -214,9 +255,56 @@ Google Cloud Shell은 개발 도구가 사전 로드된 가상 머신으로, 5GB
 | :--- |
 | `.venv/bin/python3 scripts/validate_agent.py` |
 
-| Output (do not copy) |
-| :--- |
-| `======================================================================`<br>` Cymbal Enterprise AI Hub: ADK 2.0 Automated Verification Suite`<br>`======================================================================`<br>`[PASS] 0. Enterprise Dataset Scale Check (FinOps=32, Policy=36, ITSM=32 -> Total 100 Records >= 90)`<br>`[PASS] 0b. BigQuery Live Table Sync Verification (100 rows verified in enterprise_finops_gold)`<br>`[PASS] 1. Gateway 1 (FinOps BQ Tool): Standardized Burn Rate % (131.5%) & Plotly Chart JSON Verified`<br>`[PASS] 2. Gateway 2 (IT Policy RAG - In-Domain): SEC-POL-2026-FW Window Stitching (Chunks 0,1,2) Verified`<br>`[PASS] 3. Gateway 2 (IT Policy RAG - Out-of-Domain): Certified Refusal Guardrail Verified (Max Sim < 0.70)`<br>`[PASS] 4. Gateway 3 (IT Service Desk - 2PC Mutation): OAuth Audit & PENDING_HITL_APPROVAL Verified`<br>`[PASS] 5. ADK Root Coordinator (enterprise_hub_agent): 3 Tools & Temporal Cache Callback Verified`<br>`[PASS] 6. Dual-Contract FastAPI App: A2A (/.well-known/agent-card.json) & Reasoning Engine Endpoints Verified`<br>`[PASS] 7. Deep Health Check (/healthz?deep=true): All Subsystems Healthy`<br>`[PASS] 8. Documentation Drift & Schema Integrity Check: Passed`<br>`======================================================================`<br>` 🎉 RESULT: ALL CHECKS PASSED (100 Enterprise Records & Live BigQuery Verified)`<br>`======================================================================` |
+**Output (do not copy)**
+
+```text
+====================================================================================
+🧪 CYMBAL ENTERPRISE AI HUB - AUTOMATED VALIDATION SUITE (100-RECORD DATASET)
+Project ID: qwiklabs-gcp-xx-xxxxxxxxxxxx | ITSM Mode: MOCK
+====================================================================================
+
+[TEST 1/10] Dataset Scale Audit (>= 30 Records per Gateway)...
+  • Gateway 1 (FinOps Projects):      32 records (Target >= 30)
+  • Gateway 2 (Policy RAG Chunks):    36 chunks across 12 policies (Target >= 30)
+  • Gateway 3 (ITSM Incidents):       32 records (Target >= 30)
+  • Total Enterprise Dataset Records: 100 records
+  [PASS] All 3 gateways meet the 30+ realistic enterprise record threshold.
+
+[TEST 2/10] Gateway 1: FinOps Analytics (Project & Department Queries across 32 Projects)...
+  [PASS] Completed in 2.97s — Multi-project & department SQL aggregations verified.
+
+[TEST 3/10] Gateway 2: IT Policy RAG Window Stitching (Bilingual KR/EN & Cosine Sim >= 0.70)...
+  [PASS] Completed in 2.78s — Adjacent chunks N-1~N+1 stitched & Bilingual Cosine Similarity verified.
+
+[TEST 4/10] Gateway 2: Expanded Policy Corpus Query (NET-POL-2026-PSCI & DLP Policy)...
+  [PASS] Completed in 2.78s — Expanded policies retrieved with 3-chunk window stitching.
+
+[TEST 5/10] Gateway 2: Out-of-Domain Refusal Gate (Espresso Machine & Personal Cloud Photos)...
+  [PASS] Completed in 0.00s — Certified refusal guardrail enforced strictly (EN & KR).
+
+[TEST 6/10] Gateway 3: Expanded ITSM Incident Lookup (INC-2026-88415 & P1_CRITICAL Filter)...
+  [PASS] Completed in 2.68s — Specific ticket lookup & P1 Critical filter (9 P1 incidents) verified.
+
+[TEST 7/10] Gateway 3: Dual-Mode 2PC HITL Ticket Creation & OAuth 2.0 Delegation Audit...
+  [PASS] Completed in 0.00s — 2PC lock, HITL flag & OAuth 2.0 identity (architect@cymbal.enterprise) verified.
+
+[TEST 8/10] Coordinator Governance, ADK Callback Contract & A2A Agent Card Schema...
+  [PASS] Completed in 0.00s — ADK callback contract `callback(callback_context=...)` honored, cache purged & A2A Card schema verified.
+
+[TEST 9/10] Documentation Drift: Dependency Pin Consistency (requirements.txt <-> labs/03)...
+  [PASS] Completed in 0.00s — Dependency pins consistent across requirements.txt and labs/03.
+
+[TEST 10/10] Lab Structure Integrity: Completion Checkpoints & Troubleshooting Links...
+  [PASS] Completed in 0.00s — All 5 labs expose a checkpoint & troubleshooting link.
+
+====================================================================================
+📊 VALIDATION SUMMARY: 10 PASSED, 0 FAILED (TOTAL: 10 TESTS | 100 DATA RECORDS)
+====================================================================================
+🎉 All 100 enterprise dataset records, 3 gateways, OAuth delegation & ADK 2.0 runner verified!
+```
+
+> **Note**: 스위트 시작 전 `Out-of-domain query blocked by refusal guardrail ...` 경고 2줄이 먼저 출력될 수 있습니다.
+> 이는 TEST 5의 거절 가드레일이 정상 동작한다는 로그이며 오류가 아닙니다.
 
 > ✅ **Check my progress**
 > **Click Check my progress to verify the objective.**
@@ -236,9 +324,28 @@ Google Cloud Shell은 개발 도구가 사전 로드된 가상 머신으로, 5GB
 | :--- |
 | `nohup .venv/bin/uvicorn app.fast_api_app:app --host 0.0.0.0 --port 8000 > /tmp/hub_server.log 2>&1 &`<br>`sleep 3`<br>`curl -s "http://localhost:8000/healthz?deep=true" | python3 -m json.tool` |
 
-| Output (do not copy) |
-| :--- |
-| `{`<br>`    "status": "ok",`<br>`    "service": "Cymbal Enterprise AI Hub (Dual-Contract ADK Runtime)",`<br>`    "version": "2.3.0",`<br>`    "agent_name": "enterprise_hub_agent",`<br>`    "contracts": [`<br>`        "a2a (/.well-known/agent-card.json, /a2a/enterprise_hub_agent)",`<br>`        "reasoning_engine (/api/reasoning_engine, /api/stream_reasoning_engine)"`<br>`    ],`<br>`    "deep_checks": {`<br>`        "finops_gateway_ok": true,`<br>`        "policy_rag_gateway_ok": true,`<br>`        "servicedesk_gateway_ok": true`<br>`    }`<br>`}` |
+**Output (do not copy)**
+
+```json
+{
+    "status": "healthy",
+    "agent": "enterprise_hub_agent",
+    "model": "gemini-2.5-flash",
+    "adk_runner_constructed": true,
+    "contracts": [
+        "A2A",
+        "ReasoningEngine"
+    ],
+    "execution_engine": "ADK_2.0_RUNNER (gemini-2.5-flash)",
+    "probe_latency_ms": 2376,
+    "adk_runner_active": true
+}
+```
+
+> **판독 포인트**: `execution_engine`이 `ADK_2.0_RUNNER`이면 실제 ADK 경로로 응답한 것입니다.
+> 만약 `DETERMINISTIC_HYBRID_ROUTER`로 표시되면 ADK 호출이 실패하고 결정론적 라우터로 강등된 상태이며,
+> 이때는 `status`가 `degraded`로 바뀌고 `last_adk_error`와 `remediation` 필드가 함께 반환됩니다.
+> `probe_latency_ms`는 실제 Gemini 호출을 포함하므로 환경에 따라 1,500~4,000ms 범위에서 달라집니다.
 
 ### Sub-Task 3.2. A2A Agent Card (`/.well-known/agent-card.json`) 스키마 검증
 
@@ -248,20 +355,38 @@ Google Cloud Shell은 개발 도구가 사전 로드된 가상 머신으로, 5GB
 | :--- |
 | `curl -s "http://localhost:8000/.well-known/agent-card.json" | python3 -m json.tool` |
 
-| Output (do not copy) |
-| :--- |
-| `{`<br>`    "name": "Cymbal Enterprise AI Hub",`<br>`    "description": "Google ADK 2.0 Enterprise Coordinator Agent for Cloud FinOps, IT Security SOP Vector RAG, and Live ITSM Service Desk.",`<br>`    "url": "http://localhost:8000/a2a/enterprise_hub_agent",`<br>`    "version": "2.3.0",`<br>`    "defaultInputModes": ["text/plain"],`<br>`    "defaultOutputModes": ["text/plain"],`<br>`    "capabilities": { "streaming": true }` |
+**Output (do not copy)**
+
+```json
+{
+    "name": "enterprise_hub_agent",
+    "description": "Enterprise Cloud FinOps & IT Hub Coordinator Agent. Orchestrates BigQuery FinOps burn rate analytics, IT Security SOP Vector RAG with window stitching (SEC-POL-2026-FW), and 2PC HITL Service Desk ticket creation with OAuth 2.0 identity delegation.",
+    "url": "http://localhost:8000/a2a/enterprise_hub_agent",
+    "version": "2.0.0",
+    "capabilities": {
+        "streaming": false,
+        "pushNotifications": false,
+        "stateTransitionHistory": true
+    },
+    "defaultInputModes": [
+        "text/plain"
+    ],
+    "defaultOutputModes": [
+        "text/plain"
+    ]
+}
+```
 
 ### Sub-Task 3.3. 대화형 웹 스튜디오(`/studio`)에서 5대 엔터프라이즈 시나리오 실습
 
 1. Cloud Shell 우측 상단의 **Web Preview (웹 미리보기)** 아이콘을 클릭한 후 **Preview on port 8000 (포트 8000에서 미리보기)**을 선택합니다.
 2. 브라우저 탭이 열리면 URL 끝에 `/studio`를 붙여 **`https://<CLOUD_SHELL_PROXY_URL>/studio`** 화면으로 이동합니다.
 3. 좌측 사이드바의 **5대 원클릭 시나리오 프리셋 버튼**을 차례대로 클릭하여 에이전트의 응답과 우측 **실시간 아키텍처 & 텔레메트리 트레이스 패널**을 확인합니다:
-   * **시나리오 1 (FinOps 예산/소진율 조회)**: `AI-Platform-Engineering` 부서의 `131.5%` 예산 소진율(CRITICAL) 계산 공식과 인터랙티브 Plotly 차트 렌더링 확인
-   * **시나리오 2 (보안 규정 Vector RAG & 윈도우 스티칭)**: 방화벽 포트(`8443`) 오픈 규정 질의 시 `SEC-POL-2026-FW` 문서의 인접 청크(`Chunks 0, 1, 2`)가 결합되어 사전 보안 감사 수칙과 Citation이 함께 출력되는지 확인
+   * **시나리오 1 (FinOps 예산/소진율 조회)**: 프리셋 질의는 `PROJ-AI-PROD-01`(부서: `AI Research`)을 조회하며, 예산 소진율 `132.37%`(`CRITICAL_OVERRUN`)와 유휴 GPU 낭비액 `$14,200.00`, 표준 공식 문자열, 그리고 인터랙티브 Plotly 차트가 함께 렌더링되는지 확인합니다.
+   * **시나리오 2 (보안 규정 Vector RAG & 윈도우 스티칭)**: 방화벽 포트(`8443`) 오픈 규정 질의 시 `SEC-POL-2026-FW` 문서의 인접 청크(`chunk_index` `1`, `2`, `3`)가 결합되어 사전 보안 감사 수칙과 Citation이 함께 출력되는지 확인
    * **시나리오 3 (OAuth 2.0 2PC 티켓 발행)**: 방화벽 오픈 티켓 생성 요청 시 로그인 사용자 이메일 감사 기록, `lock:user:{id}:mutation` 멱등성 키, `PENDING_HITL_APPROVAL` 상태 반환 확인
    * **시나리오 4 (복합 병렬 감사 질의)**: 예산 초과 부서 조회 + GPU 쿼터 동결 규정 검색 + 장애 티켓 조회가 단일 턴에서 병렬 호출되는지 확인
-   * **시나리오 5 (도메인 외 질의 Certified Refusal)**: *"3층 사내 카페 에스프레소 머신 스팀 노즐 청소 방법 알려줘"* 질문 시 코사인 유사도 미달(`< 0.70`)로 추측 없이 공인된 거절 문장만 단독 반환되는지 확인
+   * **시나리오 5 (도메인 외 질의 Certified Refusal)**: *"사무실 에스프레소 커피머신 석회 제거 청소 방법 알려줘"* 질문 시 코사인 유사도 미달(`< 0.70`)로 추측 없이 공인된 거절 문장만 단독 반환되는지 확인
 
 > ✅ **Check my progress**
 > **Click Check my progress to verify the objective.**
@@ -293,9 +418,24 @@ Google Cloud Shell은 개발 도구가 사전 로드된 가상 머신으로, 5GB
 | :--- |
 | `export SERVICE_URL=$(gcloud run services describe enterprise-hub-agent --region us-central1 --format="value(status.url)")`<br>`echo "Deployed Cloud Run URL: ${SERVICE_URL}"`<br>`curl -s "${SERVICE_URL}/.well-known/agent-card.json" | python3 -m json.tool` |
 
-| Output (do not copy) |
-| :--- |
-| `Deployed Cloud Run URL: https://enterprise-hub-agent-xxxxxxxxxx-uc.a.run.app`<br>`{`<br>`    "name": "Cymbal Enterprise AI Hub",`<br>`    "url": "https://enterprise-hub-agent-xxxxxxxxxx-uc.a.run.app/a2a/enterprise_hub_agent",`<br>`    "defaultInputModes": ["text/plain"],`<br>`    "defaultOutputModes": ["text/plain"]`<br>`}` |
+**Output (do not copy)**
+
+```text
+Deployed Cloud Run URL: https://enterprise-hub-agent-xxxxxxxxxx-uc.a.run.app
+```
+```json
+{
+    "name": "enterprise_hub_agent",
+    "url": "https://enterprise-hub-agent-xxxxxxxxxx-uc.a.run.app/a2a/enterprise_hub_agent",
+    "version": "2.0.0",
+    "defaultInputModes": [
+        "text/plain"
+    ],
+    "defaultOutputModes": [
+        "text/plain"
+    ]
+}
+```
 
 > **Optional (Track B — Vertex AI Agent Engine 배포)**: 완전 관리형 Reasoning Engine 런타임에 배포하려면 `.venv/bin/python3 scripts/deploy_agent_engine.py`를 실행하여 `projects/{PROJECT_NUMBER}/locations/us-central1/reasoningEngines/{ENGINE_ID}` 리소스 이름을 획득할 수 있습니다.
 

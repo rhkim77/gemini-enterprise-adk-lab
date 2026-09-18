@@ -111,7 +111,7 @@ In this task, you verify Git and Google Cloud SDK (`gcloud`) credentials, clone 
 
 | Output (do not copy) |
 | :--- |
-| `GOOGLE_CLOUD_PROJECT=qwiklabs-gcp-xx-xxxxxxxxxxxx`<br>`BQ_FINOPS_DATASET=enterprise_finops_gold` |
+| `GOOGLE_CLOUD_PROJECT="qwiklabs-gcp-xx-xxxxxxxxxxxx"`<br>`BQ_FINOPS_DATASET="enterprise_finops_gold"` |
 
 ### Sub-Task 1.3. Execute the One-Click Environment Bootstrap (`setup_environment.sh`)
 
@@ -148,15 +148,60 @@ In this task, you inspect the Three Decoupled Enterprise Tool Gateways (`app/too
 
 ### Sub-Task 2.1. Inspect the 3 Tool Gateways and Root Coordinator Agent
 
-1. To inspect the Root Coordinator Agent definition in `app/agent.py`, execute the following command:
+1. To locate the three tool gateway function signatures at once, execute the following command:
 
 | Command |
 | :--- |
-| `grep -n -C 5 "enterprise_hub_agent" app/agent.py` |
+| `grep -n "^def .*_tool" app/tools/*.py` |
 
 | Output (do not copy) |
 | :--- |
-| `enterprise_hub_agent = LlmAgent(`<br>`    name="enterprise_hub_agent",`<br>`    model=os.environ.get("ADK_MODEL_NAME", "gemini-2.5-flash"),`<br>`    instruction=SYSTEM_INSTRUCTION,`<br>`    tools=[query_finops_budget_and_burn_rate, search_it_security_policy_rag, manage_it_servicedesk_ticket],` |
+| `app/tools/finops_bq_tool.py:77:def finops_bq_tool(query_or_project_id: str) -> dict:`<br>`app/tools/it_policy_rag_tool.py:154:def it_policy_rag_tool(query: str) -> str:`<br>`app/tools/it_servicedesk_tool.py:106:def it_servicedesk_tool(` |
+
+2. To inspect the Gateway 1 signature and its **docstring**, execute the following command. Google ADK passes the **entire docstring through to the Gemini Function Calling schema as the `description` field**, so a tool docstring is not a comment - it is the only API specification the model ever reads:
+
+| Command |
+| :--- |
+| `grep -n -A 12 "^def finops_bq_tool" app/tools/finops_bq_tool.py` |
+
+**Output (do not copy)**
+
+```text
+77:def finops_bq_tool(query_or_project_id: str) -> dict:
+78-    """Queries BigQuery FinOps Gold Ledger (`enterprise_finops_gold.cloud_billing_export`, 32 Projects).
+79-
+80-    Always enforces Knowledge Catalog Business Glossary formulas to eliminate NL2SQL hallucination.
+81-
+82-    Args:
+83-        query_or_project_id: Target GCP Project ID (e.g., 'PROJ-AI-PROD-01' .. 'PROJ-OPS-MON-32'),
+84-            department name (e.g., 'AI Research', 'FinTech Security'), or alert status ('CRITICAL_OVERRUN').
+85-
+86-    Returns:
+87-        dict: Standardized FinOps metrics, burn rate percentage, alert status, dataset count, and executed GoogleSQL.
+88-    """
+```
+
+3. To inspect the Root Coordinator Agent definition in `app/agent.py`, execute the following command:
+
+| Command |
+| :--- |
+| `grep -n -A 6 "^root_agent = Agent(" app/agent.py` |
+
+**Output (do not copy)**
+
+```text
+122:root_agent = Agent(
+123-    name="enterprise_hub_agent",
+124-    model=Gemini(model=MODEL, retry_options=retry_cfg),
+125-    instruction=SYSTEM_INSTRUCTION,
+126-    tools=[finops_bq_tool, it_policy_rag_tool, it_servicedesk_tool],
+127-    before_agent_callback=validate_and_update_temporal_cache,
+128-)
+```
+
+> **How to read this**: the first parameter of the function bound to `before_agent_callback` must be named exactly
+> `callback_context`. The ADK 2.x runtime invokes it **by keyword** as `callback(callback_context=...)`, so a different
+> parameter name raises `TypeError` and the agent silently degrades to the deterministic router.
 
 ### Sub-Task 2.2. Execute the Automated Verification Suite (`validate_agent.py`)
 
@@ -166,9 +211,56 @@ In this task, you inspect the Three Decoupled Enterprise Tool Gateways (`app/too
 | :--- |
 | `.venv/bin/python3 scripts/validate_agent.py` |
 
-| Output (do not copy) |
-| :--- |
-| `[PASS] 0. Enterprise Dataset Scale Check (FinOps=32, Policy=36, ITSM=32 -> Total 100 Records >= 90)`<br>`[PASS] 0b. BigQuery Live Table Sync Verification (100 rows verified in enterprise_finops_gold)`<br>`[PASS] 1. Gateway 1 (FinOps BQ Tool): Standardized Burn Rate % (131.5%) & Plotly Chart JSON Verified`<br>`[PASS] 2. Gateway 2 (IT Policy RAG - In-Domain): SEC-POL-2026-FW Window Stitching (Chunks 0,1,2) Verified`<br>`[PASS] 3. Gateway 2 (IT Policy RAG - Out-of-Domain): Certified Refusal Guardrail Verified (Max Sim < 0.70)`<br>`[PASS] 4. Gateway 3 (IT Service Desk - 2PC Mutation): OAuth Audit & PENDING_HITL_APPROVAL Verified`<br>`🎉 RESULT: ALL CHECKS PASSED (100 Enterprise Records & Live BigQuery Verified)` |
+**Output (do not copy)**
+
+```text
+====================================================================================
+🧪 CYMBAL ENTERPRISE AI HUB - AUTOMATED VALIDATION SUITE (100-RECORD DATASET)
+Project ID: qwiklabs-gcp-xx-xxxxxxxxxxxx | ITSM Mode: MOCK
+====================================================================================
+
+[TEST 1/10] Dataset Scale Audit (>= 30 Records per Gateway)...
+  • Gateway 1 (FinOps Projects):      32 records (Target >= 30)
+  • Gateway 2 (Policy RAG Chunks):    36 chunks across 12 policies (Target >= 30)
+  • Gateway 3 (ITSM Incidents):       32 records (Target >= 30)
+  • Total Enterprise Dataset Records: 100 records
+  [PASS] All 3 gateways meet the 30+ realistic enterprise record threshold.
+
+[TEST 2/10] Gateway 1: FinOps Analytics (Project & Department Queries across 32 Projects)...
+  [PASS] Completed in 2.97s — Multi-project & department SQL aggregations verified.
+
+[TEST 3/10] Gateway 2: IT Policy RAG Window Stitching (Bilingual KR/EN & Cosine Sim >= 0.70)...
+  [PASS] Completed in 2.78s — Adjacent chunks N-1~N+1 stitched & Bilingual Cosine Similarity verified.
+
+[TEST 4/10] Gateway 2: Expanded Policy Corpus Query (NET-POL-2026-PSCI & DLP Policy)...
+  [PASS] Completed in 2.78s — Expanded policies retrieved with 3-chunk window stitching.
+
+[TEST 5/10] Gateway 2: Out-of-Domain Refusal Gate (Espresso Machine & Personal Cloud Photos)...
+  [PASS] Completed in 0.00s — Certified refusal guardrail enforced strictly (EN & KR).
+
+[TEST 6/10] Gateway 3: Expanded ITSM Incident Lookup (INC-2026-88415 & P1_CRITICAL Filter)...
+  [PASS] Completed in 2.68s — Specific ticket lookup & P1 Critical filter (9 P1 incidents) verified.
+
+[TEST 7/10] Gateway 3: Dual-Mode 2PC HITL Ticket Creation & OAuth 2.0 Delegation Audit...
+  [PASS] Completed in 0.00s — 2PC lock, HITL flag & OAuth 2.0 identity (architect@cymbal.enterprise) verified.
+
+[TEST 8/10] Coordinator Governance, ADK Callback Contract & A2A Agent Card Schema...
+  [PASS] Completed in 0.00s — ADK callback contract `callback(callback_context=...)` honored, cache purged & A2A Card schema verified.
+
+[TEST 9/10] Documentation Drift: Dependency Pin Consistency (requirements.txt <-> labs/03)...
+  [PASS] Completed in 0.00s — Dependency pins consistent across requirements.txt and labs/03.
+
+[TEST 10/10] Lab Structure Integrity: Completion Checkpoints & Troubleshooting Links...
+  [PASS] Completed in 0.00s — All 5 labs expose a checkpoint & troubleshooting link.
+
+====================================================================================
+📊 VALIDATION SUMMARY: 10 PASSED, 0 FAILED (TOTAL: 10 TESTS | 100 DATA RECORDS)
+====================================================================================
+🎉 All 100 enterprise dataset records, 3 gateways, OAuth delegation & ADK 2.0 runner verified!
+```
+
+> **Note**: Two `Out-of-domain query blocked by refusal guardrail ...` warning lines may appear before the suite header.
+> They confirm the TEST 5 refusal guardrail is working and are not errors.
 
 > ✅ **Check my progress**
 > **Click Check my progress to verify the objective.**
@@ -187,9 +279,28 @@ In this task, you start the Dual-Contract FastAPI server (`app/fast_api_app.py`)
 | :--- |
 | `nohup .venv/bin/uvicorn app.fast_api_app:app --host 0.0.0.0 --port 8000 > /tmp/hub_server.log 2>&1 &`<br>`sleep 3`<br>`curl -s "http://localhost:8000/healthz?deep=true" | python3 -m json.tool` |
 
-| Output (do not copy) |
-| :--- |
-| `{`<br>`    "status": "ok",`<br>`    "service": "Cymbal Enterprise AI Hub (Dual-Contract ADK Runtime)",`<br>`    "deep_checks": { "finops_gateway_ok": true, "policy_rag_gateway_ok": true, "servicedesk_gateway_ok": true }` |
+**Output (do not copy)**
+
+```json
+{
+    "status": "healthy",
+    "agent": "enterprise_hub_agent",
+    "model": "gemini-2.5-flash",
+    "adk_runner_constructed": true,
+    "contracts": [
+        "A2A",
+        "ReasoningEngine"
+    ],
+    "execution_engine": "ADK_2.0_RUNNER (gemini-2.5-flash)",
+    "probe_latency_ms": 2376,
+    "adk_runner_active": true
+}
+```
+
+> **How to read this**: `execution_engine` must say `ADK_2.0_RUNNER`, which means the request was served by the real ADK path.
+> If it says `DETERMINISTIC_HYBRID_ROUTER`, the ADK call failed and the app silently fell back to the deterministic router;
+> in that case `status` becomes `degraded` and the `last_adk_error` and `remediation` fields are returned as well.
+> `probe_latency_ms` includes a live Gemini call, so it varies between roughly 1,500-4,000 ms.
 
 ### Sub-Task 3.2. Verify the A2A Agent Card (`/.well-known/agent-card.json`)
 
@@ -199,17 +310,35 @@ In this task, you start the Dual-Contract FastAPI server (`app/fast_api_app.py`)
 | :--- |
 | `curl -s "http://localhost:8000/.well-known/agent-card.json" | python3 -m json.tool` |
 
-| Output (do not copy) |
-| :--- |
-| `{`<br>`    "name": "Cymbal Enterprise AI Hub",`<br>`    "url": "http://localhost:8000/a2a/enterprise_hub_agent",`<br>`    "defaultInputModes": ["text/plain"],`<br>`    "defaultOutputModes": ["text/plain"]`<br>`}` |
+**Output (do not copy)**
+
+```json
+{
+    "name": "enterprise_hub_agent",
+    "description": "Enterprise Cloud FinOps & IT Hub Coordinator Agent. Orchestrates BigQuery FinOps burn rate analytics, IT Security SOP Vector RAG with window stitching (SEC-POL-2026-FW), and 2PC HITL Service Desk ticket creation with OAuth 2.0 identity delegation.",
+    "url": "http://localhost:8000/a2a/enterprise_hub_agent",
+    "version": "2.0.0",
+    "capabilities": {
+        "streaming": false,
+        "pushNotifications": false,
+        "stateTransitionHistory": true
+    },
+    "defaultInputModes": [
+        "text/plain"
+    ],
+    "defaultOutputModes": [
+        "text/plain"
+    ]
+}
+```
 
 ### Sub-Task 3.3. Test the 5 Core Scenarios in Cloud Shell Web Preview (`/studio`)
 
 1. Click **Web Preview** in the top-right corner of Cloud Shell and select **Preview on port 8000**.
 2. Append `/studio` to the URL in your browser tab (`https://<CLOUD_SHELL_PROXY_URL>/studio`).
 3. Click through the 5 preset scenario buttons in the left sidebar to test:
-   * **Scenario 1**: FinOps Burn Rate (`131.5%` for `AI-Platform-Engineering`) and interactive Plotly chart rendering.
-   * **Scenario 2**: Security SOP Vector RAG with Adjacent Window Stitching (`SEC-POL-2026-FW` Chunks 0–2).
+   * **Scenario 1**: FinOps burn rate for `PROJ-AI-PROD-01` (department `AI Research`) returns `132.37%` (`CRITICAL_OVERRUN`) with `$14,200.00` idle GPU waste, plus interactive Plotly chart rendering.
+   * **Scenario 2**: Security SOP Vector RAG with Adjacent Window Stitching (`SEC-POL-2026-FW` `chunk_index` 1-3).
    * **Scenario 3**: OAuth 2.0 2-Phase Commit (`PENDING_HITL_APPROVAL`) firewall ticket creation.
    * **Scenario 4**: Multi-Gateway parallel enterprise audit.
    * **Scenario 5**: Out-of-domain query Certified Refusal (`Cosine Sim < 0.70`).
@@ -243,9 +372,24 @@ In this task, you containerize and deploy the `Cymbal Enterprise AI Hub` runtime
 | :--- |
 | `export SERVICE_URL=$(gcloud run services describe enterprise-hub-agent --region us-central1 --format="value(status.url)")`<br>`curl -s "${SERVICE_URL}/.well-known/agent-card.json" | python3 -m json.tool` |
 
-| Output (do not copy) |
-| :--- |
-| `{`<br>`    "name": "Cymbal Enterprise AI Hub",`<br>`    "url": "https://enterprise-hub-agent-xxxxxxxxxx-uc.a.run.app/a2a/enterprise_hub_agent",`<br>`    "defaultInputModes": ["text/plain"],`<br>`    "defaultOutputModes": ["text/plain"]`<br>`}` |
+**Output (do not copy)**
+
+```text
+Deployed Cloud Run URL: https://enterprise-hub-agent-xxxxxxxxxx-uc.a.run.app
+```
+```json
+{
+    "name": "enterprise_hub_agent",
+    "url": "https://enterprise-hub-agent-xxxxxxxxxx-uc.a.run.app/a2a/enterprise_hub_agent",
+    "version": "2.0.0",
+    "defaultInputModes": [
+        "text/plain"
+    ],
+    "defaultOutputModes": [
+        "text/plain"
+    ]
+}
+```
 
 > ✅ **Check my progress**
 > **Click Check my progress to verify the objective.**
