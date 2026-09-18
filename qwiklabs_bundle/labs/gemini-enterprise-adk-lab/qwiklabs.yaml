@@ -1,0 +1,122 @@
+# CE Qwiklabs content bundle - Lab Bundle Spec v2
+#
+# Conforms to:
+#   //depot/google3/cloud/training/qwiklabs/content_bundle/g3doc/lab-bundle-spec.md
+#   //depot/google3/cloud/training/qwiklabs/content_bundle/g3doc/examples/lab-robust/v2/
+#
+# This directory is the bundle root. GitWhisperer derives the content_id from
+# the library repository name plus this directory name ("the slug"), so the
+# directory must be published as <content-library-repo>/labs/gemini-enterprise-adk-lab/.
+# It is deliberately NOT the root of the agent source repository: that repo is
+# the lab *asset* repo, which the student clones from inside the lab.
+
+schema_version: 2
+entity_type: Lab
+
+title: "Cymbal Enterprise AI Hub: Google ADK 2.0 에이전트 구축 및 Gemini Enterprise 연동"
+description: >-
+  Google ADK 2.0으로 엔터프라이즈 Coordinator Agent를 구축하고, BigQuery
+  (enterprise_finops_gold)에 100건의 실전 데이터를 적재하며, A2A와 Reasoning Engine을
+  동시에 서빙하는 Dual-Contract FastAPI 런타임을 Cloud Run에 배포한 뒤 Gemini Enterprise
+  OAuth 2.0 위임까지 연동합니다.
+default_locale: ko
+
+duration: 120
+max_duration: 150
+credits: 1
+level: intermediate
+
+tags:
+- gemini-enterprise
+- google-adk
+- a2a
+- bigquery
+- cloud-run
+- vertex-ai
+
+instruction:
+  type: md
+  uri: instructions/ko.md
+
+resources:
+- type: file
+  id: lab-asset-repo
+  title: 실습 소스 코드 저장소 (GitHub)
+  description: >-
+    실습에서 git clone 하는 공개 저장소입니다. 에이전트 소스, 3종 툴 게이트웨이,
+    배포/검증 스크립트가 들어 있습니다.
+  uri: https://github.com/rhkim77/gemini-enterprise-adk-lab
+
+environment:
+  resources:
+  - type: gcp_project
+    id: primary_project
+    # The lab pins us-central1 throughout: the agent, BigQuery datasets and the
+    # Cloud Run service must all share a region, and Gemini Enterprise custom
+    # agent registration is only exercised there in this lab.
+    allowed_locations:
+    - us-central1
+  # Without a gcp_user no student account, password or console URL is created,
+  # and the student cannot sign in to the Cloud Console at all.
+  - type: gcp_user
+    id: primary_user
+    variant: gcp_only
+    permissions:
+    - project: primary_project
+      roles:
+      # Cloud Shell bootstrap: enable APIs, seed BigQuery, build and deploy.
+      - roles/editor
+      - roles/bigquery.admin
+      - roles/run.admin
+      - roles/cloudbuild.builds.editor
+      - roles/artifactregistry.admin
+      - roles/aiplatform.user
+      # Required to register the custom agent and its OAuth authorization
+      # resource in the Gemini Enterprise console.
+      - roles/discoveryengine.admin
+      # Cloud Run deploys run as the compute default service account, so the
+      # student must be able to act as it.
+      - roles/iam.serviceAccountUser
+
+  student_visible_outputs:
+  - label: Open Google Cloud Console
+    reference: primary_project.console_url
+  - label: GCP Project ID
+    reference: primary_project.project_id
+  - label: Username
+    reference: primary_user.username
+  - label: Password
+    reference: primary_user.password
+
+# NOTE: Activity Tracking can only observe cloud-side state. Of the five lab
+# tasks, only Task 1 (BigQuery seed) and Task 4 (Cloud Run service) leave an
+# artifact the grader can inspect. Task 2 (reading tool source), Task 3 (a
+# locally running uvicorn process) and Task 5 (console-side registration) are
+# not observable from a grading script, so they are taught and self-verified
+# with scripts/validate_agent.py and scripts/verify_lab04_completion.py rather
+# than scored here. See qwiklabs_bundle/README.md for the rationale.
+assessment:
+  passing_percentage: 100
+  steps:
+  - title: BigQuery에 100건의 엔터프라이즈 데이터가 적재되었는지 확인
+    locale_id: bigquery_seed
+    maximum_score: 50
+    student_messages:
+      success: "훌륭합니다! enterprise_finops_gold 데이터셋에 100건이 모두 적재되었습니다."
+      dataset_missing: "enterprise_finops_gold 데이터셋을 찾을 수 없습니다. scripts/setup_environment.sh 를 먼저 실행하세요."
+      tables_missing: "데이터셋은 있지만 3개 테이블이 모두 생성되지 않았습니다. 시딩 단계의 오류 메시지를 확인하세요."
+      row_count_mismatch: "테이블은 있으나 행 수가 100건이 아닙니다. scripts/seed_bigquery.py 를 다시 실행하세요."
+    services:
+    - primary_project.BigqueryV2
+    method_name: check_bigquery_seed
+  - title: Cloud Run에 enterprise-hub-agent 서비스가 배포되었는지 확인
+    locale_id: cloud_run_service
+    maximum_score: 50
+    student_messages:
+      success: "훌륭합니다! enterprise-hub-agent 서비스가 Cloud Run에서 정상 서빙 중입니다."
+      service_missing: "us-central1에서 enterprise-hub-agent 서비스를 찾을 수 없습니다. ./scripts/deploy_cloud_run.sh 를 실행하세요."
+      service_not_ready: "서비스는 존재하지만 Ready 상태가 아닙니다. Cloud Run 로그에서 컨테이너 기동 오류를 확인하세요."
+      env_var_missing: "서비스는 정상이지만 GOOGLE_GENAI_USE_VERTEXAI=TRUE 가 설정되지 않아 에이전트가 ADK 대신 폴백 라우터로 동작합니다. labs/TROUBLESHOOTING.md 1번 항목을 참고하세요."
+    services:
+    - primary_project.RunV1
+    method_name: check_cloud_run_service

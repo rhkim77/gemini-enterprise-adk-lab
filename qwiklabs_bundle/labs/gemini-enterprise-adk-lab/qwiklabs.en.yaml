@@ -1,0 +1,52 @@
+# English localization overlay for qwiklabs.yaml.
+# Only locale-specific attributes belong here; everything else is inherited.
+# `id` and `locale_id` values MUST match qwiklabs.yaml exactly, since they are
+# what the two files are joined on.
+
+title: "Cymbal Enterprise AI Hub: Build a Google ADK 2.0 Agent and Integrate It with Gemini Enterprise"
+description: >-
+  Build an enterprise Coordinator Agent with Google ADK 2.0, seed 100 enterprise
+  records into BigQuery (enterprise_finops_gold), serve both the A2A and
+  Reasoning Engine contracts from a single Dual-Contract FastAPI runtime, deploy
+  it to Cloud Run, and wire up Gemini Enterprise OAuth 2.0 delegation.
+
+instruction:
+  type: md
+  uri: instructions/en.md
+
+resources:
+- type: file
+  id: lab-asset-repo
+  title: Lab source code repository (GitHub)
+  description: >-
+    The public repository you clone during the lab. It contains the agent
+    source, the three tool gateways, and the deployment and validation scripts.
+  uri: https://github.com/rhkim77/gemini-enterprise-adk-lab
+
+environment:
+  student_visible_outputs:
+  - label: Open Google Cloud Console
+    reference: primary_project.console_url
+  - label: GCP Project ID
+    reference: primary_project.project_id
+  - label: Username
+    reference: primary_user.username
+  - label: Password
+    reference: primary_user.password
+
+assessment:
+  steps:
+  - title: Verify that 100 enterprise records were seeded into BigQuery
+    locale_id: bigquery_seed
+    student_messages:
+      success: "Great job! All 100 records are present in the enterprise_finops_gold dataset."
+      dataset_missing: "The enterprise_finops_gold dataset was not found. Run scripts/setup_environment.sh first."
+      tables_missing: "The dataset exists but not all three tables were created. Check the seeding step for errors."
+      row_count_mismatch: "The tables exist but do not hold 100 rows in total. Re-run scripts/seed_bigquery.py."
+  - title: Verify that the enterprise-hub-agent service is deployed to Cloud Run
+    locale_id: cloud_run_service
+    student_messages:
+      success: "Great job! The enterprise-hub-agent service is serving on Cloud Run."
+      service_missing: "No enterprise-hub-agent service was found in us-central1. Run ./scripts/deploy_cloud_run.sh."
+      service_not_ready: "The service exists but is not Ready. Check the Cloud Run logs for container startup errors."
+      env_var_missing: "The service is healthy but GOOGLE_GENAI_USE_VERTEXAI=TRUE is not set, so the agent falls back to the deterministic router instead of running ADK. See section 1 of labs/TROUBLESHOOTING.md."
